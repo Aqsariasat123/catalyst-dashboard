@@ -12,6 +12,8 @@ import {
   PaintBrushIcon,
   ClipboardDocumentCheckIcon,
   FolderIcon,
+  CogIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { userService, CreateUserData } from '@/services/user.service';
@@ -29,6 +31,8 @@ const roleOptions = [
   { value: '', label: 'All Roles' },
   { value: 'ADMIN', label: 'Admin' },
   { value: 'PROJECT_MANAGER', label: 'Project Manager' },
+  { value: 'OPERATIONAL_MANAGER', label: 'Operational Manager' },
+  { value: 'BIDDER', label: 'Bidder' },
   { value: 'DEVELOPER', label: 'Developer' },
   { value: 'DESIGNER', label: 'Designer' },
   { value: 'QC', label: 'QC Analyst' },
@@ -52,6 +56,18 @@ const roleConfig: Record<string, { icon: React.ElementType; color: string; label
     color: 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400',
     label: 'Project Manager',
     description: 'Can create projects, assign tasks, manage team',
+  },
+  OPERATIONAL_MANAGER: {
+    icon: CogIcon,
+    color: 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400',
+    label: 'Operational Manager',
+    description: 'Oversee operations, manage resources and workflows',
+  },
+  BIDDER: {
+    icon: CurrencyDollarIcon,
+    color: 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    label: 'Bidder',
+    description: 'Handle client proposals and project bidding',
   },
   DEVELOPER: {
     icon: WrenchScrewdriverIcon,
@@ -451,6 +467,8 @@ export default function TeamPage() {
                     >
                       <option value="ADMIN">Admin</option>
                       <option value="PROJECT_MANAGER">Project Manager</option>
+                      <option value="OPERATIONAL_MANAGER">Operational Manager</option>
+                      <option value="BIDDER">Bidder</option>
                       <option value="DEVELOPER">Developer</option>
                       <option value="DESIGNER">Designer</option>
                       <option value="QC">QC Analyst</option>
