@@ -874,7 +874,7 @@ function ProjectFinanceTab({ projects }: { projects: any[] }) {
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
-                className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 min-w-[300px]"
+                className="px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 min-w-[300px]"
               >
                 <option value="">Select project...</option>
                 {projects.map((p) => (
@@ -1078,25 +1078,25 @@ function ProjectFinanceTab({ projects }: { projects: any[] }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="text-center p-3 bg-gray-50 dark:bg-black rounded-lg">
               <p className="text-xs text-gray-500 uppercase">Developers</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 PKR {costBreakdown.developerCost.toLocaleString()}
               </p>
             </div>
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="text-center p-3 bg-gray-50 dark:bg-black rounded-lg">
               <p className="text-xs text-gray-500 uppercase">Designers</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 PKR {costBreakdown.designerCost.toLocaleString()}
               </p>
             </div>
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="text-center p-3 bg-gray-50 dark:bg-black rounded-lg">
               <p className="text-xs text-gray-500 uppercase">QC</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 PKR {costBreakdown.qcCost.toLocaleString()}
               </p>
             </div>
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="text-center p-3 bg-gray-50 dark:bg-black rounded-lg">
               <p className="text-xs text-gray-500 uppercase">PM</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 PKR {costBreakdown.pmCost.toLocaleString()}
@@ -1238,7 +1238,7 @@ function ProjectFinanceTab({ projects }: { projects: any[] }) {
               </tbody>
               {taskCosts.length > 0 && (
                 <tfoot>
-                  <tr className="bg-gray-50 dark:bg-gray-900">
+                  <tr className="bg-gray-50 dark:bg-black">
                     <td colSpan={3} className="py-3 px-4 font-medium text-gray-900 dark:text-white">
                       Total
                     </td>
@@ -1265,7 +1265,7 @@ function ProjectFinanceTab({ projects }: { projects: any[] }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="p-4 bg-gray-50 dark:bg-black rounded-lg">
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{milestones.total}</p>
               <p className="text-xs text-gray-500 uppercase">Total</p>
             </div>
@@ -1355,7 +1355,7 @@ function FinancialSettingsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-t-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
               <CogIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
@@ -1384,7 +1384,7 @@ function FinancialSettingsModal({
               step="0.01"
               value={formData.platformFeePercent}
               onChange={(e) => setFormData({ ...formData, platformFeePercent: e.target.value })}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               placeholder="e.g., 10 for 10%"
             />
             <p className="text-xs text-gray-400 mt-1">
@@ -1402,7 +1402,7 @@ function FinancialSettingsModal({
               step="0.01"
               value={formData.workingBudget}
               onChange={(e) => setFormData({ ...formData, workingBudget: e.target.value })}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               placeholder="Budget allocated for execution"
             />
             <p className="text-xs text-gray-400 mt-1">
@@ -1420,7 +1420,7 @@ function FinancialSettingsModal({
               step="0.0001"
               value={formData.exchangeRate}
               onChange={(e) => setFormData({ ...formData, exchangeRate: e.target.value })}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               placeholder="e.g., 280 for USD"
             />
             <p className="text-xs text-gray-400 mt-1">
@@ -1505,7 +1505,7 @@ function MilestoneModal({
       <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-lg">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-t-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
               <BanknotesIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
@@ -1532,7 +1532,7 @@ function MilestoneModal({
               required
               value={formData.projectId}
               onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
             >
               <option value="">Select project</option>
               {projects.map((p) => (
@@ -1552,7 +1552,7 @@ function MilestoneModal({
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               placeholder="e.g., Phase 1 Completion"
             />
           </div>
@@ -1564,7 +1564,7 @@ function MilestoneModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none"
               rows={2}
               placeholder="Optional description..."
             />
@@ -1582,7 +1582,7 @@ function MilestoneModal({
                 step="0.01"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
                 placeholder="1000"
               />
             </div>
@@ -1593,7 +1593,7 @@ function MilestoneModal({
               <select
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               >
                 <option value="USD">USD</option>
                 <option value="PKR">PKR</option>
@@ -1613,7 +1613,7 @@ function MilestoneModal({
               type="date"
               value={formData.dueDate}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
             />
           </div>
 

@@ -22,22 +22,22 @@ export default function StatsCard({
 }: StatsCardProps) {
   const variantStyles = {
     default: {
-      card: 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800',
+      card: 'bg-white dark:bg-black border-gray-200 dark:border-gray-800',
       iconBg: 'bg-gray-100 dark:bg-gray-800',
       iconColor: 'text-gray-600 dark:text-gray-300',
     },
     primary: {
-      card: 'bg-gradient-to-br from-redstone-50 dark:from-redstone-500/10 to-white dark:to-gray-900 border-redstone-200 dark:border-redstone-500/20',
+      card: 'bg-gradient-to-br from-redstone-50 dark:from-redstone-500/10 to-white dark:to-black border-redstone-200 dark:border-redstone-500/20',
       iconBg: 'bg-redstone-100 dark:bg-redstone-500/20',
       iconColor: 'text-redstone-600 dark:text-redstone-400',
     },
     success: {
-      card: 'bg-gradient-to-br from-emerald-50 dark:from-emerald-500/10 to-white dark:to-gray-900 border-emerald-200 dark:border-emerald-500/20',
+      card: 'bg-gradient-to-br from-emerald-50 dark:from-emerald-500/10 to-white dark:to-black border-emerald-200 dark:border-emerald-500/20',
       iconBg: 'bg-emerald-100 dark:bg-emerald-500/20',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
     },
     warning: {
-      card: 'bg-gradient-to-br from-amber-50 dark:from-amber-500/10 to-white dark:to-gray-900 border-amber-200 dark:border-amber-500/20',
+      card: 'bg-gradient-to-br from-amber-50 dark:from-amber-500/10 to-white dark:to-black border-amber-200 dark:border-amber-500/20',
       iconBg: 'bg-amber-100 dark:bg-amber-500/20',
       iconColor: 'text-amber-600 dark:text-amber-400',
     },

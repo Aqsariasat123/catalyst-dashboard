@@ -20,7 +20,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           className={cn(
-            'w-full px-4 py-3 bg-gray-200 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white',
+            'w-full px-4 py-3 bg-gray-200 dark:bg-black border rounded-xl text-gray-900 dark:text-white',
             'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600',
             'focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none',
             'disabled:bg-gray-300 dark:disabled:bg-black disabled:cursor-not-allowed disabled:opacity-50',
@@ -37,7 +37,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           )}
           {options.map((option) => (
-            <option key={option.value} value={option.value} className="bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-white">
+            <option key={option.value} value={option.value} className="bg-gray-200 dark:bg-black text-gray-900 dark:text-white">
               {option.label}
             </option>
           ))}
