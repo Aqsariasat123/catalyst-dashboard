@@ -20,11 +20,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           type={type}
           ref={ref}
           className={cn(
-            'w-full px-4 py-3 bg-gray-200 dark:bg-dark-800 border rounded-xl text-gray-900 dark:text-white',
-            'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
+            'w-full px-4 py-3 bg-gray-200 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white',
+            'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600',
             'focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none',
-            'placeholder:text-gray-500 dark:placeholder:text-dark-500',
-            'disabled:bg-gray-300 dark:disabled:bg-dark-900 disabled:cursor-not-allowed disabled:opacity-50',
+            'placeholder:text-gray-500 dark:placeholder:text-gray-500',
+            'disabled:bg-gray-300 dark:disabled:bg-black disabled:cursor-not-allowed disabled:opacity-50',
             'transition-all duration-200',
             error && 'border-red-500 focus:ring-red-300 dark:focus:ring-red-600 focus:border-red-500',
             className

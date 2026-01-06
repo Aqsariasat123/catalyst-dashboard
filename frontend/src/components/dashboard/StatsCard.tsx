@@ -22,22 +22,22 @@ export default function StatsCard({
 }: StatsCardProps) {
   const variantStyles = {
     default: {
-      card: 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-700',
-      iconBg: 'bg-gray-100 dark:bg-dark-700',
-      iconColor: 'text-gray-600 dark:text-dark-300',
+      card: 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800',
+      iconBg: 'bg-gray-100 dark:bg-gray-800',
+      iconColor: 'text-gray-600 dark:text-gray-300',
     },
     primary: {
-      card: 'bg-gradient-to-br from-redstone-50 dark:from-redstone-500/10 to-white dark:to-redstone-600/5 border-redstone-200 dark:border-redstone-500/20',
+      card: 'bg-gradient-to-br from-redstone-50 dark:from-redstone-500/10 to-white dark:to-gray-900 border-redstone-200 dark:border-redstone-500/20',
       iconBg: 'bg-redstone-100 dark:bg-redstone-500/20',
       iconColor: 'text-redstone-600 dark:text-redstone-400',
     },
     success: {
-      card: 'bg-gradient-to-br from-emerald-50 dark:from-emerald-500/10 to-white dark:to-emerald-600/5 border-emerald-200 dark:border-emerald-500/20',
+      card: 'bg-gradient-to-br from-emerald-50 dark:from-emerald-500/10 to-white dark:to-gray-900 border-emerald-200 dark:border-emerald-500/20',
       iconBg: 'bg-emerald-100 dark:bg-emerald-500/20',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
     },
     warning: {
-      card: 'bg-gradient-to-br from-amber-50 dark:from-amber-500/10 to-white dark:to-amber-600/5 border-amber-200 dark:border-amber-500/20',
+      card: 'bg-gradient-to-br from-amber-50 dark:from-amber-500/10 to-white dark:to-gray-900 border-amber-200 dark:border-amber-500/20',
       iconBg: 'bg-amber-100 dark:bg-amber-500/20',
       iconColor: 'text-amber-600 dark:text-amber-400',
     },
@@ -55,7 +55,7 @@ export default function StatsCard({
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-dark-400">
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
             {title}
           </p>
           <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
@@ -73,7 +73,7 @@ export default function StatsCard({
               >
                 {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
               </span>
-              <span className="text-xs text-gray-400 dark:text-dark-500">vs last week</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">vs last week</span>
             </div>
           )}
         </div>

@@ -10,17 +10,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-dark-900 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
+      'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
 
     const variants = {
       primary:
         'bg-gradient-to-r from-redstone-600 to-redstone-700 text-white hover:from-redstone-500 hover:to-redstone-600 focus:ring-gray-400 shadow-lg shadow-redstone-500/25 hover:shadow-redstone-500/40',
       secondary:
-        'bg-gray-200 dark:bg-dark-800 text-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-dark-700 focus:ring-gray-400 dark:focus:ring-dark-500 border border-gray-300 dark:border-dark-700',
+        'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 focus:ring-gray-400 dark:focus:ring-gray-600 border border-gray-300 dark:border-gray-700',
       outline:
-        'border border-gray-300 dark:border-dark-600 bg-transparent text-gray-600 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800 hover:text-gray-900 dark:hover:text-white focus:ring-gray-400 dark:focus:ring-dark-500',
+        'border border-gray-300 dark:border-gray-700 bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white focus:ring-gray-400 dark:focus:ring-gray-600',
       ghost:
-        'bg-transparent text-gray-600 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800 hover:text-gray-900 dark:hover:text-white focus:ring-gray-400 dark:focus:ring-dark-500',
+        'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white focus:ring-gray-400 dark:focus:ring-gray-600',
       danger:
         'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-500 hover:to-red-600 focus:ring-red-500 shadow-lg shadow-red-500/25',
     };

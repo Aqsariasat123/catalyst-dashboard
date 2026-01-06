@@ -9,7 +9,7 @@ interface BadgeProps {
 
 export default function Badge({ children, variant = 'default', size = 'md', className }: BadgeProps) {
   const variants = {
-    default: 'bg-gray-200 dark:bg-dark-700 text-gray-600 dark:text-dark-300 ring-gray-300 dark:ring-dark-600',
+    default: 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 ring-gray-300 dark:ring-gray-700',
     success: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-200 dark:ring-emerald-500/20',
     warning: 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-200 dark:ring-amber-500/20',
     danger: 'bg-redstone-100 dark:bg-redstone-500/10 text-redstone-600 dark:text-redstone-400 ring-redstone-200 dark:ring-redstone-500/20',
