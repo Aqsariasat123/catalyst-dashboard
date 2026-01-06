@@ -12,8 +12,7 @@ enum UserRole {
   PROJECT_MANAGER
   OPERATIONAL_MANAGER
   BIDDER
-  WEB_DEVELOPER
-  APP_DEVELOPER
+  DEVELOPER
   DESIGNER
   QC
 }
@@ -72,7 +71,7 @@ model User {
   password      String
   firstName     String
   lastName      String
-  role          UserRole  @default(WEB_DEVELOPER)
+  role          UserRole  @default(DEVELOPER)
   userType      UserType  @default(INHOUSE)
   avatar        String?
   phone         String?
