@@ -4,8 +4,6 @@ import {
   PlusIcon,
   MagnifyingGlassIcon,
   UserIcon,
-  EnvelopeIcon,
-  PhoneIcon,
   PencilSquareIcon,
   TrashIcon,
   XMarkIcon,
@@ -285,39 +283,51 @@ export default function TeamPage() {
         </CardContent>
       </Card>
 
-      {/* Team Members Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
-          ))}
+      {/* Team Members List */}
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+        {/* Table Header */}
+        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="col-span-3">Member</div>
+          <div className="col-span-3">Email</div>
+          <div className="col-span-2">Role</div>
+          <div className="col-span-1">Type</div>
+          <div className="col-span-2">Salary</div>
+          <div className="col-span-1 text-right">Actions</div>
         </div>
-      ) : data?.data.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
+
+        {isLoading ? (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="px-6 py-4">
+                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : data?.data.length === 0 ? (
+          <div className="py-12 text-center">
             <UserIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
               No team members found
             </h3>
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {filters.search ? 'Try adjusting your search' : 'Add your first team member'}
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data?.data.map((user) => (
-            <TeamMemberCard
-              key={user.id}
-              user={user}
-              isAdmin={isAdmin}
-              isCurrentUser={user.id === currentUser?.id}
-              onEdit={() => openEditModal(user)}
-              onDelete={() => setDeleteConfirm(user.id)}
-            />
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {data?.data.map((user) => (
+              <TeamMemberRow
+                key={user.id}
+                user={user}
+                isAdmin={isAdmin}
+                isCurrentUser={user.id === currentUser?.id}
+                onEdit={() => openEditModal(user)}
+                onDelete={() => setDeleteConfirm(user.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Pagination */}
       {data && data.meta.totalPages > 1 && (
@@ -578,7 +588,7 @@ export default function TeamPage() {
   );
 }
 
-function TeamMemberCard({
+function TeamMemberRow({
   user,
   isAdmin,
   isCurrentUser,
@@ -594,80 +604,153 @@ function TeamMemberCard({
   const config = roleConfig[user.role];
 
   return (
-    <Card className="hover:shadow-md transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
+    <div className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+      {/* Desktop Row */}
+      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center">
+        {/* Member */}
+        <div className="col-span-3 flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">
             <Avatar
               firstName={user.firstName}
               lastName={user.lastName}
               avatar={user.avatar}
-              size="lg"
+              size="sm"
             />
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-medium text-gray-900 dark:text-white truncate">
+              {user.firstName} {user.lastName}
+              {isCurrentUser && (
+                <span className="ml-2 text-xs text-redstone-600 dark:text-redstone-400">(You)</span>
+              )}
+            </h3>
+            {user.phone && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.phone}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Email */}
+        <div className="col-span-3 min-w-0">
+          <span className="text-sm text-gray-600 dark:text-gray-300 truncate block">{user.email}</span>
+        </div>
+
+        {/* Role */}
+        <div className="col-span-2">
+          <Badge className={config?.color || 'bg-gray-100 text-gray-700'} size="sm">
+            {config?.label || user.role}
+          </Badge>
+        </div>
+
+        {/* Type */}
+        <div className="col-span-1">
+          <span
+            className={cn(
+              'inline-flex px-2 py-0.5 rounded text-xs font-medium',
+              user.userType === 'INHOUSE'
+                ? 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+                : 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400'
+            )}
+          >
+            {user.userType === 'INHOUSE' ? 'In-House' : 'Freelancer'}
+          </span>
+        </div>
+
+        {/* Salary */}
+        <div className="col-span-2">
+          {user.monthlySalary ? (
+            <div className="text-sm">
+              <span className="text-gray-900 dark:text-white">PKR {user.monthlySalary.toLocaleString()}</span>
+              <span className="text-xs text-gray-400 ml-1">/mo</span>
+            </div>
+          ) : (
+            <span className="text-sm text-gray-400">—</span>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="col-span-1 flex items-center justify-end gap-1">
+          {isAdmin && !isCurrentUser && (
+            <>
+              <button
+                onClick={onEdit}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Edit"
+              >
+                <PencilSquareIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Card */}
+      <div className="md:hidden px-4 py-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">
+            <Avatar
+              firstName={user.firstName}
+              lastName={user.lastName}
+              avatar={user.avatar}
+              size="sm"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-medium text-gray-900 dark:text-white truncate">
                 {user.firstName} {user.lastName}
                 {isCurrentUser && (
-                  <span className="ml-2 text-xs text-redstone-600 dark:text-redstone-400">(You)</span>
+                  <span className="ml-1 text-xs text-redstone-600 dark:text-redstone-400">(You)</span>
                 )}
               </h3>
               <Badge className={config?.color || 'bg-gray-100 text-gray-700'} size="sm">
                 {config?.label || user.role}
               </Badge>
             </div>
-          </div>
-        </div>
-
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-            <EnvelopeIcon className="w-4 h-4" />
-            <span className="truncate">{user.email}</span>
-          </div>
-          {user.phone && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <PhoneIcon className="w-4 h-4" />
-              <span>{user.phone}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-            <span
-              className={cn(
-                'px-2 py-0.5 rounded text-xs font-medium',
-                user.userType === 'INHOUSE'
-                  ? 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
-                  : 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400'
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{user.email}</p>
+            <div className="flex items-center gap-3 mt-2 text-xs">
+              <span
+                className={cn(
+                  'px-2 py-0.5 rounded font-medium',
+                  user.userType === 'INHOUSE'
+                    ? 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+                    : 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400'
+                )}
+              >
+                {user.userType === 'INHOUSE' ? 'In-House' : 'Freelancer'}
+              </span>
+              {user.monthlySalary && (
+                <span className="text-gray-500 dark:text-gray-400">
+                  PKR {user.monthlySalary.toLocaleString()}/mo
+                </span>
               )}
-            >
-              {user.userType === 'INHOUSE' ? 'In-House' : 'Freelancer'}
-            </span>
+            </div>
           </div>
-          {user.monthlySalary && (
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-              <span>PKR {user.monthlySalary.toLocaleString()}/mo</span>
-              <span className="text-gray-400">PKR {calculateHourlyRate(user.monthlySalary).toLocaleString()}/hr</span>
+          {isAdmin && !isCurrentUser && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onEdit}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-colors"
+              >
+                <PencilSquareIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-1.5 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>
-
-        {isAdmin && !isCurrentUser && (
-          <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <button
-              onClick={onEdit}
-              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              title="Edit"
-            >
-              <PencilSquareIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onDelete}
-              className="p-1.5 text-gray-400 hover:text-red-600"
-              title="Delete"
-            >
-              <TrashIcon className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
