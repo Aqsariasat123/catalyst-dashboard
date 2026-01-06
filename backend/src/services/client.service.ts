@@ -131,12 +131,9 @@ export class ClientService {
   }
 
   async delete(id: string) {
-    const client = await this.findById(id);
+    await this.findById(id);
 
-    if (client._count.projects > 0) {
-      throw new AppError('Cannot delete client with existing projects', 400);
-    }
-
+    // Cascade delete: delete all projects (and their tasks) first, then delete client
     await prisma.client.delete({
       where: { id },
     });
