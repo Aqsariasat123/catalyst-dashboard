@@ -592,8 +592,8 @@ export default function ProjectsPage() {
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center">
-                      <PencilIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="w-8 h-8 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
+                      <PencilIcon className="w-4 h-4 text-redstone-600 dark:text-redstone-400" />
                     </div>
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                       Edit Project
@@ -740,7 +740,7 @@ export default function ProjectsPage() {
                 <button
                   onClick={handleUpdateProject}
                   disabled={updateProjectMutation.isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-medium text-white bg-redstone-600 hover:bg-redstone-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {updateProjectMutation.isPending ? (
                     <>
