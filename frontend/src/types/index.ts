@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'PROJECT_MANAGER' | 'OPERATIONAL_MANAGER' | 'BIDDER' | 'DEVELOPER' | 'DESIGNER' | 'QC';
+export type UserRole = 'ADMIN' | 'PROJECT_MANAGER' | 'OPERATIONAL_MANAGER' | 'BIDDER' | 'WEB_DEVELOPER' | 'APP_DEVELOPER' | 'DESIGNER' | 'QC';
 export type UserType = 'INHOUSE' | 'FREELANCER';
 export type ClientType = 'UPWORK' | 'DIRECT' | 'FREELANCER';
 export type ProjectStatus = 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';

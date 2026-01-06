@@ -8,12 +8,13 @@ import {
   TrashIcon,
   XMarkIcon,
   ShieldCheckIcon,
-  WrenchScrewdriverIcon,
   PaintBrushIcon,
   ClipboardDocumentCheckIcon,
   FolderIcon,
   CogIcon,
   CurrencyDollarIcon,
+  GlobeAltIcon,
+  DevicePhoneMobileIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { userService, CreateUserData } from '@/services/user.service';
@@ -33,7 +34,8 @@ const roleOptions = [
   { value: 'PROJECT_MANAGER', label: 'Project Manager' },
   { value: 'OPERATIONAL_MANAGER', label: 'Operational Manager' },
   { value: 'BIDDER', label: 'Bidder' },
-  { value: 'DEVELOPER', label: 'Developer' },
+  { value: 'WEB_DEVELOPER', label: 'Web Developer' },
+  { value: 'APP_DEVELOPER', label: 'App Developer' },
   { value: 'DESIGNER', label: 'Designer' },
   { value: 'QC', label: 'QC Analyst' },
 ];
@@ -69,11 +71,17 @@ const roleConfig: Record<string, { icon: React.ElementType; color: string; label
     label: 'Bidder',
     description: 'Handle client proposals and project bidding',
   },
-  DEVELOPER: {
-    icon: WrenchScrewdriverIcon,
+  WEB_DEVELOPER: {
+    icon: GlobeAltIcon,
     color: 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
-    label: 'Developer',
-    description: 'Access to assigned tasks and time tracking',
+    label: 'Web Developer',
+    description: 'Web application development and maintenance',
+  },
+  APP_DEVELOPER: {
+    icon: DevicePhoneMobileIcon,
+    color: 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400',
+    label: 'App Developer',
+    description: 'Mobile app development for iOS and Android',
   },
   DESIGNER: {
     icon: PaintBrushIcon,
@@ -94,7 +102,7 @@ const initialUserForm: CreateUserData = {
   password: '',
   firstName: '',
   lastName: '',
-  role: 'DEVELOPER',
+  role: 'WEB_DEVELOPER',
   userType: 'INHOUSE',
   phone: '',
   monthlySalary: undefined,
@@ -469,7 +477,8 @@ export default function TeamPage() {
                       <option value="PROJECT_MANAGER">Project Manager</option>
                       <option value="OPERATIONAL_MANAGER">Operational Manager</option>
                       <option value="BIDDER">Bidder</option>
-                      <option value="DEVELOPER">Developer</option>
+                      <option value="WEB_DEVELOPER">Web Developer</option>
+                      <option value="APP_DEVELOPER">App Developer</option>
                       <option value="DESIGNER">Designer</option>
                       <option value="QC">QC Analyst</option>
                     </select>
