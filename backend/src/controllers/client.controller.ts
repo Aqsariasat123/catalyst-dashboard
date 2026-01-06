@@ -9,9 +9,9 @@ const createClientSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional(),
   company: z.string().optional(),
-  clientType: z.enum(['UPWORK', 'DIRECT']),
-  upworkProfile: z.string().url().optional().or(z.literal('')),
-  website: z.string().url().optional().or(z.literal('')),
+  clientType: z.enum(['UPWORK', 'DIRECT', 'FREELANCER']),
+  upworkProfile: z.string().optional().or(z.literal('')),
+  website: z.string().optional().or(z.literal('')),
   address: z.string().optional(),
   notes: z.string().optional(),
 });

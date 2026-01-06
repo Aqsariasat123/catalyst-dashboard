@@ -23,6 +23,7 @@ enum UserType {
 enum ClientType {
   UPWORK
   DIRECT
+  FREELANCER
 }
 
 enum ProjectStatus {

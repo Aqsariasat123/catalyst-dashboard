@@ -119,6 +119,7 @@ export function getClientTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     UPWORK: 'Upwork',
     DIRECT: 'Direct',
+    FREELANCER: 'Freelancer',
   };
 
   return labels[type] || type;

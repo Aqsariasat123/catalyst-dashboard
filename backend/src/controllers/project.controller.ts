@@ -9,9 +9,9 @@ const createProjectSchema = z.object({
   description: z.string().optional(),
   clientId: z.string().uuid('Invalid client ID'),
   status: z.enum(['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED']).optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
-  budget: z.number().positive().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  budget: z.number().positive().optional().or(z.string().transform(v => v ? parseFloat(v) : undefined)),
   currency: z.string().optional(),
 });
 

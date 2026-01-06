@@ -11,6 +11,7 @@ import {
   StopIcon,
   PlusIcon,
   XMarkIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { projectService } from '@/services/project.service';
 import { taskService, CreateTaskData } from '@/services/task.service';
@@ -57,6 +58,7 @@ export default function ProjectDetailPage() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('');
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState(initialTaskForm);
+  const [deleteTaskConfirm, setDeleteTaskConfirm] = useState<{ id: string; title: string } | null>(null);
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', id],
@@ -150,6 +152,31 @@ export default function ProjectDetailPage() {
       toast.error('Failed to update task');
     },
   });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: (taskId: string) => taskService.delete(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
+      setDeleteTaskConfirm(null);
+      toast.success('Task deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete task');
+    },
+  });
+
+  const handleDeleteTask = (taskId: string, taskTitle: string) => {
+    setDeleteTaskConfirm({ id: taskId, title: taskTitle });
+  };
+
+  const confirmDeleteTask = () => {
+    if (deleteTaskConfirm) {
+      deleteTaskMutation.mutate(deleteTaskConfirm.id);
+    }
+  };
 
   const filteredTasks = tasks?.filter(
     (task) => !statusFilter || task.status === statusFilter
@@ -360,6 +387,7 @@ export default function ProjectDetailPage() {
                           onUpdateStatus={(status) =>
                             updateTaskMutation.mutate({ taskId: task.id, status })
                           }
+                          onDelete={() => handleDeleteTask(task.id, task.title)}
                           isTimerLoading={
                             startTimerMutation.isPending || stopTimerMutation.isPending
                           }
@@ -554,6 +582,74 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Task Confirmation Modal */}
+      {deleteTaskConfirm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
+              onClick={() => setDeleteTaskConfirm(null)}
+            />
+            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+                    <TrashIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                      Delete Task
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      This action cannot be undone
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="px-6 py-5">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-white">"{deleteTaskConfirm.title}"</span>?
+                  All time entries associated with this task will also be deleted.
+                </p>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setDeleteTaskConfirm(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteTask}
+                  disabled={deleteTaskMutation.isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {deleteTaskMutation.isPending ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <TrashIcon className="w-4 h-4" />
+                      Delete Task
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -564,6 +660,7 @@ interface TaskCardProps {
   onStartTimer: () => void;
   onStopTimer: () => void;
   onUpdateStatus: (status: TaskStatus) => void;
+  onDelete: () => void;
   isTimerLoading: boolean;
 }
 
@@ -573,6 +670,7 @@ function TaskCard({
   onStartTimer,
   onStopTimer,
   onUpdateStatus,
+  onDelete,
   isTimerLoading,
 }: TaskCardProps) {
   const isTimerActive = activeTimer?.taskId === task.id;
@@ -644,6 +742,15 @@ function TaskCard({
               </>
             )}
           </Button>
+
+          {/* Delete button */}
+          <button
+            onClick={onDelete}
+            className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+            title="Delete Task"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

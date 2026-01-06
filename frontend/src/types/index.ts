@@ -1,6 +1,6 @@
 export type UserRole = 'ADMIN' | 'PROJECT_MANAGER' | 'DEVELOPER' | 'DESIGNER' | 'QC';
 export type UserType = 'INHOUSE' | 'FREELANCER';
-export type ClientType = 'UPWORK' | 'DIRECT';
+export type ClientType = 'UPWORK' | 'DIRECT' | 'FREELANCER';
 export type ProjectStatus = 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'BLOCKED';

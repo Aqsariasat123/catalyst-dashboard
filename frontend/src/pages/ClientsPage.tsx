@@ -27,6 +27,7 @@ const clientTypeOptions = [
   { value: '', label: 'All Types' },
   { value: 'UPWORK', label: 'Upwork' },
   { value: 'DIRECT', label: 'Direct' },
+  { value: 'FREELANCER', label: 'Freelancer' },
 ];
 
 const initialClientForm: CreateClientData = {
@@ -334,6 +335,7 @@ export default function ClientsPage() {
                     >
                       <option value="DIRECT">Direct Client</option>
                       <option value="UPWORK">Upwork Client</option>
+                      <option value="FREELANCER">Freelancer</option>
                     </select>
                   </div>
                 </div>

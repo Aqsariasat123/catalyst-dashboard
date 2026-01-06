@@ -11,6 +11,9 @@ import {
   XMarkIcon,
   ChevronRightIcon,
   BuildingOffice2Icon,
+  TrashIcon,
+  PencilSquareIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 import { projectService, ProjectFilters, CreateProjectData } from '@/services/project.service';
 import { clientService } from '@/services/client.service';
@@ -61,6 +64,9 @@ export default function ProjectsPage() {
 
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [projectForm, setProjectForm] = useState(initialProjectForm);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [editForm, setEditForm] = useState(initialProjectForm);
 
   const { data, isLoading } = useQuery({
     queryKey: ['projects', filters],
@@ -70,7 +76,7 @@ export default function ProjectsPage() {
   const { data: clients } = useQuery({
     queryKey: ['clients'],
     queryFn: () => clientService.getAll({ limit: 100 }),
-    enabled: showNewProjectModal,
+    enabled: showNewProjectModal || !!editProject,
   });
 
   const createProjectMutation = useMutation({
@@ -86,6 +92,78 @@ export default function ProjectsPage() {
       toast.error(error?.response?.data?.message || 'Failed to create project');
     },
   });
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: (id: string) => projectService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
+      setDeleteConfirm(null);
+      toast.success('Project deleted successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Failed to delete project');
+    },
+  });
+
+  const handleDeleteProject = (id: string, name: string) => {
+    setDeleteConfirm({ id, name });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm) {
+      deleteProjectMutation.mutate(deleteConfirm.id);
+    }
+  };
+
+  const updateProjectMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateProjectData> }) =>
+      projectService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
+      setEditProject(null);
+      toast.success('Project updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Failed to update project');
+    },
+  });
+
+  const handleEditProject = (project: Project) => {
+    setEditProject(project);
+    setEditForm({
+      name: project.name,
+      description: project.description || '',
+      clientId: project.clientId,
+      status: project.status,
+      startDate: project.startDate ? project.startDate.split('T')[0] : '',
+      endDate: project.endDate ? project.endDate.split('T')[0] : '',
+      budget: project.budget?.toString() || '',
+      currency: project.currency || 'USD',
+    });
+  };
+
+  const handleUpdateProject = () => {
+    if (!editProject) return;
+    if (!editForm.name.trim()) {
+      toast.error('Project name is required');
+      return;
+    }
+    updateProjectMutation.mutate({
+      id: editProject.id,
+      data: {
+        name: editForm.name,
+        description: editForm.description || undefined,
+        clientId: editForm.clientId,
+        status: editForm.status,
+        startDate: editForm.startDate || undefined,
+        endDate: editForm.endDate || undefined,
+        budget: editForm.budget ? parseFloat(editForm.budget) : undefined,
+        currency: editForm.currency,
+      },
+    });
+  };
 
   const handleCreateProject = () => {
     if (!projectForm.name.trim()) {
@@ -170,12 +248,13 @@ export default function ProjectsPage() {
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         {/* Table Header */}
         <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          <div className="col-span-4">Project</div>
+          <div className="col-span-3">Project</div>
           <div className="col-span-2">Client</div>
           <div className="col-span-1">Status</div>
           <div className="col-span-2">Timeline</div>
           <div className="col-span-2">Team</div>
-          <div className="col-span-1 text-right">Tasks</div>
+          <div className="col-span-1 text-center">Tasks</div>
+          <div className="col-span-1 text-right">Actions</div>
         </div>
 
         {/* Loading State */}
@@ -206,7 +285,13 @@ export default function ProjectsPage() {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {data?.data.map((project) => (
-              <ProjectRow key={project.id} project={project} />
+              <ProjectRow
+                key={project.id}
+                project={project}
+                isAdmin={isAdmin}
+                onDelete={handleDeleteProject}
+                onEdit={handleEditProject}
+              />
             ))}
           </div>
         )}
@@ -425,11 +510,270 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
+              onClick={() => setDeleteConfirm(null)}
+            />
+            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+                    <TrashIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                      Delete Project
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      This action cannot be undone
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="px-6 py-5">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-white">"{deleteConfirm.name}"</span>?
+                  All associated tasks, time entries, and data will be permanently removed.
+                </p>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleteProjectMutation.isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {deleteProjectMutation.isPending ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <TrashIcon className="w-4 h-4" />
+                      Delete Project
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {editProject && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
+              onClick={() => setEditProject(null)}
+            />
+            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center">
+                      <PencilIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                      Edit Project
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setEditProject(null)}
+                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+                {/* Project Name */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Project Name <span className="text-redstone-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Website Redesign"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                  />
+                </div>
+
+                {/* Client */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Client <span className="text-redstone-500">*</span>
+                  </label>
+                  <select
+                    value={editForm.clientId}
+                    onChange={(e) => setEditForm({ ...editForm, clientId: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                  >
+                    <option value="">Select client...</option>
+                    {clients?.data.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status & Dates Row */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Status
+                    </label>
+                    <select
+                      value={editForm.status}
+                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value as ProjectStatus })}
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                    >
+                      {statusOptions.filter(s => s.value !== '').map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Start
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.startDate}
+                      onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      End
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.endDate}
+                      onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Budget Row */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Budget
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={editForm.budget}
+                      onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Currency
+                    </label>
+                    <select
+                      value={editForm.currency}
+                      onChange={(e) => setEditForm({ ...editForm, currency: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="PKR">PKR</option>
+                      <option value="AUD">AUD</option>
+                      <option value="CAD">CAD</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    placeholder="Brief project description..."
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setEditProject(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateProject}
+                  disabled={updateProjectMutation.isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {updateProjectMutation.isPending ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <PencilIcon className="w-4 h-4" />
+                      Update Project
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function ProjectRow({ project }: { project: Project }) {
+interface ProjectRowProps {
+  project: Project;
+  isAdmin: boolean;
+  onDelete: (id: string, name: string) => void;
+  onEdit: (project: Project) => void;
+}
+
+function ProjectRow({ project, isAdmin, onDelete, onEdit }: ProjectRowProps) {
   const statusConfig: Record<string, { bg: string; text: string; dot: string }> = {
     PLANNING: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
     IN_PROGRESS: { bg: 'bg-cyan-50 dark:bg-cyan-500/10', text: 'text-cyan-700 dark:text-cyan-400', dot: 'bg-cyan-500' },
@@ -441,14 +785,11 @@ function ProjectRow({ project }: { project: Project }) {
   const status = statusConfig[project.status] || statusConfig.PLANNING;
 
   return (
-    <Link
-      to={`/projects/${project.id}`}
-      className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-    >
+    <div className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
       {/* Desktop Row */}
       <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center">
         {/* Project Info */}
-        <div className="col-span-4 flex items-center gap-3 min-w-0">
+        <Link to={`/projects/${project.id}`} className="col-span-3 flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">
             <FolderIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
           </div>
@@ -462,7 +803,7 @@ function ProjectRow({ project }: { project: Project }) {
               </p>
             )}
           </div>
-        </div>
+        </Link>
 
         {/* Client */}
         <div className="col-span-2 min-w-0">
@@ -537,8 +878,8 @@ function ProjectRow({ project }: { project: Project }) {
         </div>
 
         {/* Tasks Count */}
-        <div className="col-span-1 text-right">
-          <div className="flex flex-col items-end gap-0.5">
+        <div className="col-span-1 text-center">
+          <div className="flex flex-col items-center gap-0.5">
             <div className="flex items-center gap-2 text-xs">
               <span className="text-green-600 dark:text-green-400" title="Completed">
                 {(project as any).taskCounts?.completed || 0}
@@ -555,10 +896,47 @@ function ProjectRow({ project }: { project: Project }) {
             <span className="text-[10px] text-gray-400 dark:text-gray-500">done/active/todo</span>
           </div>
         </div>
+
+        {/* Actions */}
+        <div className="col-span-1 flex items-center justify-end gap-1">
+          <Link
+            to={`/projects/${project.id}`}
+            className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+            title="View Tasks"
+          >
+            <ClipboardDocumentListIcon className="w-4 h-4" />
+          </Link>
+          {isAdmin && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit(project);
+                }}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Edit Project"
+              >
+                <PencilSquareIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete(project.id, project.name);
+                }}
+                className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                title="Delete Project"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mobile Card */}
-      <div className="md:hidden px-4 py-4">
+      <Link to={`/projects/${project.id}`} className="md:hidden block px-4 py-4">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">
             <FolderIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
@@ -600,7 +978,7 @@ function ProjectRow({ project }: { project: Project }) {
           </div>
           <ChevronRightIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
         </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
