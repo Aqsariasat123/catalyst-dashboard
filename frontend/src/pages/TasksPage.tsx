@@ -674,16 +674,22 @@ function TaskRow({
               disabled={isTimerLoading || hasOtherActiveTimer}
               title={isTimerActive ? 'Stop timer' : hasOtherActiveTimer ? 'Stop other timer first' : 'Start timer'}
               className={cn(
-                'p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 isTimerActive
-                  ? 'bg-redstone-600 text-white hover:bg-redstone-700'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-redstone-100 dark:hover:bg-redstone-500/10 hover:text-redstone-600 dark:hover:text-redstone-400'
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-400 dark:hover:bg-green-500/30'
               )}
             >
               {isTimerActive ? (
-                <StopIcon className="w-4 h-4" />
+                <>
+                  <StopIcon className="w-4 h-4" />
+                  <span>Stop</span>
+                </>
               ) : (
-                <PlayIcon className="w-4 h-4" />
+                <>
+                  <PlayIcon className="w-4 h-4" />
+                  <span>Start</span>
+                </>
               )}
             </button>
           )}
@@ -750,16 +756,22 @@ function TaskRow({
               onClick={isTimerActive ? onStopTimer : onStartTimer}
               disabled={isTimerLoading || hasOtherActiveTimer}
               className={cn(
-                'p-2 rounded-lg transition-colors disabled:opacity-50',
+                'flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50',
                 isTimerActive
-                  ? 'bg-redstone-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                  : 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
               )}
             >
               {isTimerActive ? (
-                <StopIcon className="w-4 h-4" />
+                <>
+                  <StopIcon className="w-3.5 h-3.5" />
+                  <span>Stop</span>
+                </>
               ) : (
-                <PlayIcon className="w-4 h-4" />
+                <>
+                  <PlayIcon className="w-3.5 h-3.5" />
+                  <span>Start</span>
+                </>
               )}
             </button>
           )}

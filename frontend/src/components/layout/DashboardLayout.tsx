@@ -16,7 +16,7 @@ export default function DashboardLayout() {
   }, [isCollapsed]);
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-dark-950">
+    <div className="flex h-screen bg-gray-100 dark:bg-black">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -28,10 +28,10 @@ export default function DashboardLayout() {
         'flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300'
       )}>
         {/* Mobile header - only shows hamburger on mobile */}
-        <div className="lg:hidden h-14 bg-white dark:bg-dark-900 border-b border-gray-200 dark:border-dark-800 flex items-center px-4">
+        <div className="lg:hidden h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-dark-800 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
+            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
             <Bars3Icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>

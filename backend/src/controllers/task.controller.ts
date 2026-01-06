@@ -8,11 +8,12 @@ const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   projectId: z.string().uuid('Invalid project ID'),
+  milestoneId: z.string().uuid().optional().nullable(),
   assigneeId: z.string().uuid().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
   status: z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED', 'BLOCKED']).optional(),
   estimatedHours: z.number().positive().optional(),
-  dueDate: z.string().datetime().optional(),
+  dueDate: z.string().optional(),
 });
 
 const updateTaskSchema = createTaskSchema.omit({ projectId: true }).partial();

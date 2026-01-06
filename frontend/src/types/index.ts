@@ -5,6 +5,7 @@ export type ProjectStatus = 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED'
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'BLOCKED';
 export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEEDS_CHANGES';
+export type MilestoneStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface User {
   id: string;
@@ -70,11 +71,35 @@ export interface ProjectMember {
   user?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'avatar'>;
 }
 
+export interface Milestone {
+  id: string;
+  projectId: string;
+  title: string;
+  description?: string;
+  amount?: number;
+  currency: string;
+  status: MilestoneStatus;
+  dueDate?: string;
+  releasedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  project?: Pick<Project, 'id' | 'name'>;
+  tasks?: Task[];
+  progress?: number;
+  completedTasks?: number;
+  totalTasks?: number;
+  totalTimeSeconds?: number;
+  _count?: {
+    tasks: number;
+  };
+}
+
 export interface Task {
   id: string;
   title: string;
   description?: string;
   projectId: string;
+  milestoneId?: string;
   assigneeId?: string;
   createdById: string;
   status: TaskStatus;
@@ -92,6 +117,7 @@ export interface Task {
   reviewedAt?: string;
   hasBugs?: boolean;
   project?: Pick<Project, 'id' | 'name' | 'client'>;
+  milestone?: Pick<Milestone, 'id' | 'title' | 'status'>;
   assignee?: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatar'>;
   createdBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
   reviewedBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;

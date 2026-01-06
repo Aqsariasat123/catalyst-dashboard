@@ -283,7 +283,7 @@ export class AccountsService {
     let totalHoursTracked = 0;
 
     const projectBreakdown = projects.map((project) => {
-      const releasedMilestones = project.milestones.filter((m) => m.status === 'RELEASED');
+      const releasedMilestones = project.milestones.filter((m) => m.status === 'COMPLETED');
       const releasedAmount = releasedMilestones.reduce(
         (sum, m) => sum + (this.toNumber(m.amount) || 0),
         0
@@ -301,7 +301,7 @@ export class AccountsService {
 
       totalRevenue += this.convertToPKR(releasedAmount, project.currency) || 0;
       totalMilestonesReleased += releasedMilestones.length;
-      totalMilestonesPending += project.milestones.filter((m) => m.status !== 'RELEASED' && m.status !== 'CANCELLED').length;
+      totalMilestonesPending += project.milestones.filter((m) => m.status !== 'COMPLETED' && m.status !== 'CANCELLED').length;
       totalLaborCost += projectLaborCost;
       totalHoursTracked += projectHours;
 
@@ -390,9 +390,9 @@ export class AccountsService {
     }
 
     // Calculate milestone stats
-    const releasedMilestones = project.milestones.filter((m) => m.status === 'RELEASED');
+    const releasedMilestones = project.milestones.filter((m) => m.status === 'COMPLETED');
     const pendingMilestones = project.milestones.filter(
-      (m) => m.status !== 'RELEASED' && m.status !== 'CANCELLED'
+      (m) => m.status !== 'COMPLETED' && m.status !== 'CANCELLED'
     );
 
     const milestones = {
@@ -666,9 +666,9 @@ export class AccountsService {
     const isOverBudget = referenceBudget !== null && totalCost > referenceBudget;
 
     // Calculate milestone stats
-    const releasedMilestones = project.milestones.filter((m) => m.status === 'RELEASED');
+    const releasedMilestones = project.milestones.filter((m) => m.status === 'COMPLETED');
     const pendingMilestones = project.milestones.filter(
-      (m) => m.status !== 'RELEASED' && m.status !== 'CANCELLED'
+      (m) => m.status !== 'COMPLETED' && m.status !== 'CANCELLED'
     );
 
     return {
@@ -920,7 +920,7 @@ export class AccountsService {
     const updateData: any = { ...data };
 
     // If status is being set to RELEASED, set releasedAt
-    if (data.status === 'RELEASED') {
+    if (data.status === 'COMPLETED') {
       updateData.releasedAt = new Date();
     }
 
@@ -1048,7 +1048,7 @@ export class AccountsService {
       // Get released milestones for this month
       const milestones = await prisma.milestone.findMany({
         where: {
-          status: 'RELEASED',
+          status: 'COMPLETED',
           releasedAt: {
             gte: startOfMonth,
             lte: endOfMonth,

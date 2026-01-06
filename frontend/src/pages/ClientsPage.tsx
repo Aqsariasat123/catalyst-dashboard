@@ -19,7 +19,6 @@ import { Client, ClientType } from '@/types';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import Badge from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { cn } from '@/utils/helpers';
 
@@ -185,35 +184,56 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      {/* Clients Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
-          ))}
+      {/* Clients List */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        {/* Table Header */}
+        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="col-span-3">Client</div>
+          <div className="col-span-2">Type</div>
+          <div className="col-span-3">Contact</div>
+          <div className="col-span-2">Website</div>
+          <div className="col-span-1 text-center">Projects</div>
+          <div className="col-span-1 text-right">Actions</div>
         </div>
-      ) : data?.data.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
+
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="px-6 py-4">
+                <div className="animate-pulse flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : data?.data.length === 0 ? (
+          <div className="px-6 py-16 text-center">
             <BuildingOffice2Icon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No clients found</h3>
-            <p className="text-gray-500 dark:text-gray-400">
+            <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
+              No clients found
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {filters.search ? 'Try adjusting your search' : 'Add your first client to get started'}
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data?.data.map((client) => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              onEdit={() => openEditModal(client)}
-              onDelete={() => setDeleteConfirm(client.id)}
-            />
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {data?.data.map((client) => (
+              <ClientRow
+                key={client.id}
+                client={client}
+                onEdit={() => openEditModal(client)}
+                onDelete={() => setDeleteConfirm(client.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Pagination */}
       {data && data.meta.totalPages > 1 && (
@@ -473,95 +493,175 @@ export default function ClientsPage() {
   );
 }
 
-function ClientCard({
-  client,
-  onEdit,
-  onDelete,
-}: {
+interface ClientRowProps {
   client: Client;
   onEdit: () => void;
   onDelete: () => void;
-}) {
+}
+
+function ClientRow({ client, onEdit, onDelete }: ClientRowProps) {
+  const typeConfig: Record<string, { bg: string; text: string }> = {
+    UPWORK: { bg: 'bg-green-50 dark:bg-green-500/10', text: 'text-green-700 dark:text-green-400' },
+    DIRECT: { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-700 dark:text-blue-400' },
+    FREELANCER: { bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-700 dark:text-purple-400' },
+  };
+
+  const type = typeConfig[client.clientType] || typeConfig.DIRECT;
+
   return (
-    <Card className="hover:shadow-md transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
-              <BuildingOffice2Icon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">{client.name}</h3>
-              {client.company && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">{client.company}</p>
-              )}
-            </div>
+    <div className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+      {/* Desktop Row */}
+      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center">
+        {/* Client Info */}
+        <div className="col-span-3 flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">
+            <BuildingOffice2Icon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
           </div>
-          <Badge
-            className={cn(
-              client.clientType === 'UPWORK'
-                ? 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
-                : 'bg-slate-100 dark:bg-slate-500/10 text-slate-700 dark:text-slate-400'
+          <div className="min-w-0">
+            <h3 className="font-medium text-gray-900 dark:text-white truncate">
+              {client.name}
+            </h3>
+            {client.company && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {client.company}
+              </p>
             )}
-          >
+          </div>
+        </div>
+
+        {/* Type */}
+        <div className="col-span-2">
+          <span className={cn(
+            'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+            type.bg, type.text
+          )}>
             {client.clientType}
-          </Badge>
+          </span>
         </div>
 
-        <div className="space-y-2 text-sm">
-          {client.email && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <EnvelopeIcon className="w-4 h-4" />
-              <span className="truncate">{client.email}</span>
-            </div>
-          )}
-          {client.phone && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <PhoneIcon className="w-4 h-4" />
-              <span>{client.phone}</span>
-            </div>
-          )}
-          {client.website && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <GlobeAltIcon className="w-4 h-4" />
-              <a
-                href={client.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="truncate hover:text-redstone-600 dark:hover:text-redstone-400"
-              >
-                {client.website.replace(/^https?:\/\//, '')}
-              </a>
-            </div>
+        {/* Contact */}
+        <div className="col-span-3 min-w-0">
+          <div className="space-y-1">
+            {client.email && (
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                <EnvelopeIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{client.email}</span>
+              </div>
+            )}
+            {client.phone && (
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                <PhoneIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{client.phone}</span>
+              </div>
+            )}
+            {!client.email && !client.phone && (
+              <span className="text-sm text-gray-400">—</span>
+            )}
+          </div>
+        </div>
+
+        {/* Website */}
+        <div className="col-span-2 min-w-0">
+          {client.website ? (
+            <a
+              href={client.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-redstone-600 dark:hover:text-redstone-400 truncate"
+            >
+              <GlobeAltIcon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{client.website.replace(/^https?:\/\//, '')}</span>
+            </a>
+          ) : (
+            <span className="text-sm text-gray-400">—</span>
           )}
         </div>
 
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        {/* Projects Count */}
+        <div className="col-span-1 text-center">
           <Link
             to={`/projects?clientId=${client.id}`}
-            className="flex items-center gap-1 text-sm text-redstone-600 dark:text-redstone-400 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm text-redstone-600 dark:text-redstone-400 hover:underline"
           >
             <FolderIcon className="w-4 h-4" />
-            {client._count?.projects || 0} projects
+            {client._count?.projects || 0}
           </Link>
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Actions */}
+        <div className="col-span-1 flex items-center justify-end gap-1">
+          <button
+            onClick={onEdit}
+            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Edit Client"
+          >
+            <PencilSquareIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+            title="Delete Client"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Card */}
+      <div className="md:hidden px-4 py-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">
+            <BuildingOffice2Icon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                {client.name}
+              </h3>
+              <span className={cn(
+                'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0',
+                type.bg, type.text
+              )}>
+                {client.clientType}
+              </span>
+            </div>
+            {client.company && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                {client.company}
+              </p>
+            )}
+            <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+              {client.email && (
+                <span className="flex items-center gap-1 truncate">
+                  <EnvelopeIcon className="w-3.5 h-3.5" />
+                  {client.email}
+                </span>
+              )}
+              <Link
+                to={`/projects?clientId=${client.id}`}
+                className="flex items-center gap-1 text-redstone-600 dark:text-redstone-400"
+              >
+                <FolderIcon className="w-3.5 h-3.5" />
+                {client._count?.projects || 0}
+              </Link>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
             <button
               onClick={onEdit}
-              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              title="Edit"
+              className="p-1.5 text-gray-400 hover:text-gray-600"
             >
               <PencilSquareIcon className="w-4 h-4" />
             </button>
             <button
               onClick={onDelete}
               className="p-1.5 text-gray-400 hover:text-red-600"
-              title="Delete"
             >
               <TrashIcon className="w-4 h-4" />
             </button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

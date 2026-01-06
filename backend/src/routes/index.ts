@@ -7,6 +7,7 @@ import taskRoutes from './task.routes.js';
 import timeEntryRoutes from './timeEntry.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import accountsRoutes from './accounts.routes.js';
+import milestoneRoutes from './milestone.routes.js';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/tasks', taskRoutes);
 router.use('/time-entries', timeEntryRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/accounts', accountsRoutes);
+router.use('/', milestoneRoutes);
 
 export default router;

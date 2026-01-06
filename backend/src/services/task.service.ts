@@ -1,6 +1,7 @@
 import { TaskStatus, TaskPriority, ReviewStatus, Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { milestoneService } from './milestone.service.js';
 import { PaginationParams, PaginatedResponse } from '../types/index.js';
 import { calculatePagination } from '../utils/helpers.js';
 
@@ -8,6 +9,7 @@ export interface CreateTaskDTO {
   title: string;
   description?: string;
   projectId: string;
+  milestoneId?: string | null;
   assigneeId?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
@@ -88,6 +90,13 @@ export class TaskService {
             },
           },
         },
+        milestone: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
         assignee: {
           select: {
             id: true,
@@ -160,6 +169,13 @@ export class TaskService {
                 userId: true,
               },
             },
+          },
+        },
+        milestone: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
           },
         },
         assignee: {
@@ -285,6 +301,8 @@ export class TaskService {
 
   async update(id: string, data: UpdateTaskDTO, userId: string, userRole: string) {
     const task = await this.findById(id, userId, userRole);
+    const oldMilestoneId = task.milestoneId;
+    const statusChanged = data.status && data.status !== task.status;
 
     // If status is being changed to COMPLETED, set completedAt
     if (data.status === 'COMPLETED' && task.status !== 'COMPLETED') {
@@ -304,6 +322,13 @@ export class TaskService {
           select: {
             id: true,
             name: true,
+          },
+        },
+        milestone: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
           },
         },
         assignee: {
@@ -327,6 +352,18 @@ export class TaskService {
           data: { taskId: id, projectId: updatedTask.projectId },
         },
       });
+    }
+
+    // Update milestone progress if task status changed or milestone assignment changed
+    if (statusChanged || data.milestoneId !== undefined) {
+      // Update old milestone progress if task was moved to a different milestone
+      if (oldMilestoneId && oldMilestoneId !== data.milestoneId) {
+        await milestoneService.updateProgress(oldMilestoneId);
+      }
+      // Update new milestone progress
+      if (updatedTask.milestoneId) {
+        await milestoneService.updateProgress(updatedTask.milestoneId);
+      }
     }
 
     return updatedTask;

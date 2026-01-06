@@ -71,14 +71,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-gray-100 dark:bg-dark-900 border-r border-gray-200 dark:border-dark-800 transform transition-all duration-300 ease-out lg:translate-x-0 lg:static lg:z-0 flex flex-col',
+          'fixed inset-y-0 left-0 z-50 bg-gray-100 dark:bg-black border-r border-gray-200 dark:border-gray-800 transform transition-all duration-300 ease-out lg:translate-x-0 lg:static lg:z-0 flex flex-col',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           isCollapsed ? 'w-20' : 'w-72'
         )}
       >
         {/* Logo */}
         <div className={cn(
-          'flex items-center h-16 border-b border-gray-200 dark:border-dark-800',
+          'flex items-center h-16 border-b border-gray-200 dark:border-gray-800',
           isCollapsed ? 'px-3 justify-center' : 'px-4 justify-between'
         )}>
           <div className="flex items-center gap-3">
@@ -101,7 +101,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           {!isCollapsed && (
             <button
               onClick={onToggleCollapse}
-              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-dark-800 hover:bg-gray-300 dark:hover:bg-dark-700 transition-colors"
+              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
             >
               <ChevronLeftIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
@@ -110,10 +110,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
         {/* Collapse button - collapsed state (positioned below logo) */}
         {isCollapsed && (
-          <div className="hidden lg:flex justify-center py-2 border-b border-gray-200 dark:border-dark-800">
+          <div className="hidden lg:flex justify-center py-2 border-b border-gray-200 dark:border-gray-800">
             <button
               onClick={onToggleCollapse}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-dark-800 hover:bg-gray-300 dark:hover:bg-dark-700 transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
             >
               <ChevronRightIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
@@ -122,12 +122,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
         {/* Header Actions - Theme & Notifications */}
         <div className={cn(
-          'flex items-center gap-2 py-3 border-b border-gray-200 dark:border-dark-800',
+          'flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-800',
           isCollapsed ? 'px-3 flex-col' : 'px-4'
         )}>
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-gray-200 dark:bg-dark-800 hover:bg-gray-300 dark:hover:bg-dark-700 transition-all"
+            className="p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? (
@@ -138,7 +138,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           </button>
 
           <button
-            className="relative p-2 rounded-lg bg-gray-200 dark:bg-dark-800 hover:bg-gray-300 dark:hover:bg-dark-700 transition-all"
+            className="relative p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all"
             title="Notifications"
           >
             <BellIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -160,7 +160,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                   'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                   isActive
                     ? 'bg-gradient-to-r from-redstone-600 to-redstone-700 text-white shadow-lg shadow-redstone-500/20'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-800 hover:text-gray-900 dark:hover:text-white',
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white',
                   isCollapsed && 'justify-center px-2'
                 )}
               >
@@ -182,10 +182,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         </nav>
 
         {/* User Menu */}
-        <div className="p-3 border-t border-gray-200 dark:border-dark-800">
+        <div className="p-3 border-t border-gray-200 dark:border-gray-800">
           <Menu as="div" className="relative">
             <Menu.Button className={cn(
-              'flex items-center gap-3 w-full p-2 rounded-xl bg-gray-200 dark:bg-dark-800/50 hover:bg-gray-300 dark:hover:bg-dark-800 transition-all',
+              'flex items-center gap-3 w-full p-2 rounded-xl bg-gray-200 dark:bg-gray-800/50 hover:bg-gray-300 dark:hover:bg-gray-800 transition-all',
               isCollapsed && 'justify-center'
             )}>
               {user && (
@@ -216,10 +216,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
               leaveTo="transform opacity-0 scale-95 translate-y-1"
             >
               <Menu.Items className={cn(
-                'absolute bottom-full mb-2 w-56 origin-bottom-left rounded-xl bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 shadow-xl focus:outline-none overflow-hidden',
+                'absolute bottom-full mb-2 w-56 origin-bottom-left rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl focus:outline-none overflow-hidden',
                 isCollapsed ? 'left-0' : 'left-0'
               )}>
-                <div className="px-4 py-3 border-b border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-900">
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {user?.firstName} {user?.lastName}
                   </p>
