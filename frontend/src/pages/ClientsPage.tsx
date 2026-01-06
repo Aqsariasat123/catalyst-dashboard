@@ -185,7 +185,7 @@ export default function ClientsPage() {
       </Card>
 
       {/* Clients List */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
         {/* Table Header */}
         <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           <div className="col-span-3">Client</div>
@@ -265,7 +265,7 @@ export default function ClientsPage() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={closeModal} />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="flex items-center justify-between">
@@ -459,7 +459,7 @@ export default function ClientsPage() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                   Delete Client

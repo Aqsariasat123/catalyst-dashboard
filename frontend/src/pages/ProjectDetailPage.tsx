@@ -661,7 +661,7 @@ export default function ProjectDetailPage() {
                 setTargetMilestoneId(null);
               }}
             />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -853,7 +853,7 @@ export default function ProjectDetailPage() {
                 setTaskForm(initialTaskForm);
               }}
             />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1042,7 +1042,7 @@ export default function ProjectDetailPage() {
                 setMilestoneForm(initialMilestoneForm);
               }}
             />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1171,7 +1171,7 @@ export default function ProjectDetailPage() {
               className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
               onClick={() => setDeleteTaskConfirm(null)}
             />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-500/10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
@@ -1236,7 +1236,7 @@ export default function ProjectDetailPage() {
               className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
               onClick={() => setDeleteMilestoneConfirm(null)}
             />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-500/10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">

@@ -214,7 +214,7 @@ export default function TasksPage() {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -248,7 +248,7 @@ export default function TasksPage() {
       </div>
 
       {/* Tasks List */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
         {/* Table Header */}
         <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           <div className="col-span-4">Task</div>
@@ -336,7 +336,7 @@ export default function TasksPage() {
               className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
               onClick={() => setShowNewTaskModal(false)}
             />
-            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="flex items-center justify-between">

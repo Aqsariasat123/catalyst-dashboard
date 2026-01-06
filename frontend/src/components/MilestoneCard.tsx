@@ -123,9 +123,9 @@ export default function MilestoneCard({
   const progress = milestone.progress ?? 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-redstone-600 dark:border-redstone-500 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-black rounded-xl border-2 border-redstone-600 dark:border-redstone-500 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Milestone Header */}
-      <div className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 px-5 py-4">
+      <div className="bg-gray-50 dark:bg-black/50 border-b border-gray-200 dark:border-gray-700 px-5 py-4">
         <div className="flex items-center gap-4">
           {/* Milestone Number */}
           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-redstone-100 dark:bg-redstone-500/20 flex items-center justify-center">
@@ -229,7 +229,7 @@ export default function MilestoneCard({
 
       {/* Tasks Section */}
       {isExpanded && milestone.tasks && milestone.tasks.length > 0 && (
-        <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/50">
           <div className="p-4 space-y-3">
             {milestone.tasks.map((task) => (
               <MilestoneTaskCard
@@ -250,7 +250,7 @@ export default function MilestoneCard({
 
       {/* Empty Tasks State */}
       {isExpanded && (!milestone.tasks || milestone.tasks.length === 0) && (
-        <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-6">
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/50 p-6">
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
             No tasks in this milestone yet.{' '}
             <button
@@ -290,7 +290,7 @@ function MilestoneTaskCard({
   const isTimerActive = activeTimer?.taskId === task.id;
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+    <div className="p-4 bg-white dark:bg-black rounded-lg border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
       <div className="flex flex-col gap-3">
         {/* Task Header Row */}
         <div className="flex items-start justify-between gap-4">

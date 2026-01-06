@@ -156,7 +156,7 @@ function AdminDashboard({ stats, userName }: { stats: DashboardStats; userName: 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Task Overview - Takes 2 columns */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="lg:col-span-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">Task Overview</h3>
             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-redstone-100 dark:bg-redstone-500/10 text-redstone-600 dark:text-redstone-400">
@@ -213,7 +213,7 @@ function AdminDashboard({ stats, userName }: { stats: DashboardStats; userName: 
         </div>
 
         {/* Project Status */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">Projects by Status</h3>
           </div>
@@ -267,7 +267,7 @@ function AdminDashboard({ stats, userName }: { stats: DashboardStats; userName: 
 
       {/* Recent Activity */}
       {stats.recentActivities && stats.recentActivities.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
           </div>
@@ -371,7 +371,7 @@ function DeveloperDashboard({ stats, userName }: { stats: DeveloperStats; userNa
       </div>
 
       {/* Progress Overview */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h3 className="text-base font-semibold text-gray-900 dark:text-white">Your Progress</h3>
           <Link
@@ -457,7 +457,7 @@ function MetricCard({
 
   return (
     <div className={cn(
-      "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 transition-all duration-200 hover:shadow-md",
+      "bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-all duration-200 hover:shadow-md",
       style.hover
     )}>
       <div className="flex items-center gap-3">
@@ -555,7 +555,7 @@ function QuickStatCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600">
+    <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4 hover:shadow-md transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{title}</p>
@@ -572,7 +572,7 @@ function QuickStatCard({
             <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
           )}
         </div>
-        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
+        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
           <Icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         </div>
       </div>
@@ -592,7 +592,7 @@ function TimeCard({
   variant?: 'default' | 'primary' | 'success';
 }) {
   const variants = {
-    default: 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white',
+    default: 'bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white',
     primary: 'bg-gradient-to-br from-redstone-600 to-redstone-700 text-white border border-transparent',
     success: 'bg-gradient-to-br from-green-600 to-green-700 text-white border border-transparent',
   };

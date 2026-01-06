@@ -525,7 +525,7 @@ function SummaryCard({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600">
+    <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4 hover:shadow-md transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600">
       <div className="flex items-center gap-3">
         <div className={cn('p-2 rounded-lg', colors[color])}>
           <Icon className="w-5 h-5" />
