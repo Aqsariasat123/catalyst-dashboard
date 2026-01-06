@@ -651,12 +651,12 @@ function TaskRow({
             "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
             isTimerActive
               ? "bg-redstone-100 dark:bg-redstone-500/10"
-              : "bg-gray-100 dark:bg-gray-700"
+              : "bg-redstone-100 dark:bg-redstone-500/10"
           )}>
             {isTimerActive ? (
               <div className="w-3 h-3 bg-redstone-500 rounded-full animate-pulse" />
             ) : (
-              <ClipboardDocumentListIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <ClipboardDocumentListIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
             )}
           </div>
           <div className="min-w-0">
@@ -789,12 +789,12 @@ function TaskRow({
             "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
             isTimerActive
               ? "bg-redstone-100 dark:bg-redstone-500/10"
-              : "bg-gray-100 dark:bg-gray-700"
+              : "bg-redstone-100 dark:bg-redstone-500/10"
           )}>
             {isTimerActive ? (
               <div className="w-3 h-3 bg-redstone-500 rounded-full animate-pulse" />
             ) : (
-              <ClipboardDocumentListIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <ClipboardDocumentListIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
             )}
           </div>
           <div className="flex-1 min-w-0">
