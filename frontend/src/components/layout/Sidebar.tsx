@@ -2,20 +2,20 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import {
-  HomeIcon,
-  FolderIcon,
-  ClipboardDocumentListIcon,
+  Squares2X2Icon,
+  FolderOpenIcon,
+  CheckBadgeIcon,
   ClockIcon,
-  UsersIcon,
-  BuildingOffice2Icon,
-  ChartBarIcon,
+  UserGroupIcon,
+  BuildingStorefrontIcon,
+  PresentationChartLineIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   BellIcon,
   SunIcon,
   MoonIcon,
-  ArrowRightOnRectangleIcon,
-  BanknotesIcon,
+  ArrowRightStartOnRectangleIcon,
+  WalletIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -39,21 +39,21 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   };
 
   const adminNavItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Clients', href: '/clients', icon: BuildingOffice2Icon },
-    { name: 'Projects', href: '/projects', icon: FolderIcon },
-    { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon },
+    { name: 'Clients', href: '/clients', icon: BuildingStorefrontIcon },
+    { name: 'Projects', href: '/projects', icon: FolderOpenIcon },
+    { name: 'Tasks', href: '/tasks', icon: CheckBadgeIcon },
     { name: 'Time Tracking', href: '/time-tracking', icon: ClockIcon },
-    { name: 'Team', href: '/team', icon: UsersIcon },
-    { name: 'Accounts', href: '/accounts', icon: BanknotesIcon },
-    { name: 'Reports', href: '/reports', icon: ChartBarIcon },
+    { name: 'Team', href: '/team', icon: UserGroupIcon },
+    { name: 'Accounts', href: '/accounts', icon: WalletIcon },
+    { name: 'Reports', href: '/reports', icon: PresentationChartLineIcon },
   ];
 
   const developerNavItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'My Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon },
+    { name: 'My Tasks', href: '/tasks', icon: CheckBadgeIcon },
     { name: 'Time Tracking', href: '/time-tracking', icon: ClockIcon },
-    { name: 'Projects', href: '/projects', icon: FolderIcon },
+    { name: 'Projects', href: '/projects', icon: FolderOpenIcon },
   ];
 
   const navItems = isAdmin ? adminNavItems : developerNavItems;
@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           isCollapsed ? 'w-20' : 'w-72'
         )}
       >
-        {/* Logo & Collapse Button */}
+        {/* Logo */}
         <div className={cn(
           'flex items-center h-16 border-b border-gray-200 dark:border-dark-800',
           isCollapsed ? 'px-3 justify-center' : 'px-4 justify-between'
@@ -97,21 +97,28 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             )}
           </div>
 
-          {/* Collapse button - desktop only */}
-          <button
-            onClick={onToggleCollapse}
-            className={cn(
-              'hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-dark-800 hover:bg-gray-300 dark:hover:bg-dark-700 transition-colors',
-              isCollapsed && 'absolute -right-3 top-4 w-6 h-6 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 shadow-sm'
-            )}
-          >
-            {isCollapsed ? (
-              <ChevronRightIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            ) : (
+          {/* Collapse button - expanded state */}
+          {!isCollapsed && (
+            <button
+              onClick={onToggleCollapse}
+              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-dark-800 hover:bg-gray-300 dark:hover:bg-dark-700 transition-colors"
+            >
               <ChevronLeftIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            )}
-          </button>
+            </button>
+          )}
         </div>
+
+        {/* Collapse button - collapsed state (positioned below logo) */}
+        {isCollapsed && (
+          <div className="hidden lg:flex justify-center py-2 border-b border-gray-200 dark:border-dark-800">
+            <button
+              onClick={onToggleCollapse}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-dark-800 hover:bg-gray-300 dark:hover:bg-dark-700 transition-colors"
+            >
+              <ChevronRightIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
+        )}
 
         {/* Header Actions - Theme & Notifications */}
         <div className={cn(
@@ -233,7 +240,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                             : 'text-redstone-600 dark:text-redstone-400'
                         )}
                       >
-                        <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                        <ArrowRightStartOnRectangleIcon className="w-4 h-4" />
                         Sign out
                       </button>
                     )}
