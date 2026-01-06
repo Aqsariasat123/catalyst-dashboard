@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 20% 65%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 0 84% 60%;
+    --border: 214.3 31.8% 91.4%;
+    --ring: 0 84% 60%;
+
+    /* Toast colors */
+    --toast-bg: #ffffff;
+    --toast-color: #1e293b;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 98%;
+    --card: 217 33% 10%;
+    --card-foreground: 210 40% 98%;
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217.2 32.6% 17.5%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 0 84% 60%;
+    --border: 217.2 32.6% 17.5%;
+    --ring: 0 84% 60%;
+
+    /* Toast colors dark */
+    --toast-bg: #1e293b;
+    --toast-color: #f1f5f9;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-800;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-dark-950 dark:text-gray-100 antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Override default focus styles globally */
+  select:focus,
+  input:focus,
+  textarea:focus,
+  button:focus {
+    outline: none;
+  }
+
+  select {
+    @apply focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="search"],
+  textarea {
+    @apply focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-dark-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-dark-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-dark-600;
+  }
+}
+
+@layer components {
+  /* Gradient backgrounds */
+  .bg-gradient-redstone {
+    @apply bg-gradient-to-br from-redstone-600 via-redstone-700 to-redstone-800;
+  }
+
+  .bg-gradient-redstone-light {
+    @apply bg-gradient-to-br from-redstone-500 to-redstone-600;
+  }
+
+  .bg-gradient-dark {
+    @apply bg-gradient-to-br from-gray-200 via-gray-300 to-gray-200 dark:from-dark-800 dark:via-dark-900 dark:to-dark-950;
+  }
+
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 dark:bg-dark-900/80 backdrop-blur-lg;
+  }
+
+  /* Stats card gradient */
+  .stats-gradient {
+    @apply bg-gradient-to-br from-white to-gray-100 dark:from-dark-800 dark:to-dark-900;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-redstone-500 to-redstone-700;
+  }
+
+  /* Glow effects */
+  .glow-redstone {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  }
+
+  .glow-redstone-lg {
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
+  }
+}
+
+/* Page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+/* Stagger animations for lists */
+.stagger-item {
+  opacity: 0;
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(6) { animation-delay: 0.3s; }
+.stagger-item:nth-child(7) { animation-delay: 0.35s; }
+.stagger-item:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

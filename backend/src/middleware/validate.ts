@@ -1,0 +1,30 @@
+import { Request, Response, NextFunction } from 'express';
+import { ZodSchema, ZodError } from 'zod';
+import { sendError } from '../utils/helpers.js';
+
+export function validate(schema: ZodSchema, property: 'body' | 'query' | 'params' = 'body') {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      const data = schema.parse(req[property]);
+      req[property] = data;
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errors: Record<string, string[]> = {};
+
+        error.errors.forEach((err) => {
+          const path = err.path.join('.');
+          if (!errors[path]) {
+            errors[path] = [];
+          }
+          errors[path].push(err.message);
+        });
+
+        sendError(res, 'Validation failed', 400, errors);
+        return;
+      }
+
+      sendError(res, 'Validation error', 400);
+    }
+  };
+}
