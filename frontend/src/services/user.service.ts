@@ -9,7 +9,7 @@ export interface CreateUserData {
   role: UserRole;
   userType: UserType;
   phone?: string;
-  hourlyRate?: number;
+  monthlySalary?: number;
 }
 
 export interface UpdateUserData {
@@ -18,7 +18,7 @@ export interface UpdateUserData {
   role?: UserRole;
   userType?: UserType;
   phone?: string;
-  hourlyRate?: number;
+  monthlySalary?: number;
   isActive?: boolean;
 }
 

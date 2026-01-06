@@ -321,13 +321,15 @@ export class AccountsService {
     // Calculate developer costs
     const developerCosts = developers.map((dev) => {
       const hoursWorked = dev.timeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 3600;
-      const hourlyRate = this.toNumber(dev.hourlyRate) || 0;
-      const cost = hoursWorked * hourlyRate * USD_TO_PKR; // Assuming hourly rate is in USD
+      const monthlySalary = this.toNumber(dev.monthlySalary);
+      const hourlyRate = this.calculateHourlyRate(monthlySalary);
+      const cost = hoursWorked * hourlyRate; // hourlyRate is already in PKR
 
       return {
         id: dev.id,
         name: `${dev.firstName} ${dev.lastName}`,
-        monthlySalary: this.toNumber(dev.monthlySalary),
+        monthlySalary,
+        hourlyRate,
         hoursWorked: Math.round(hoursWorked * 100) / 100,
         cost: Math.round(cost),
         projectsCount: dev.projectMembers.length,
@@ -422,16 +424,17 @@ export class AccountsService {
 
     const developers = project.members.map((member) => {
       const hoursWorked = (developerTimeMap.get(member.user.id) || 0) / 3600;
-      const hourlyRate = this.toNumber(member.user.hourlyRate) || 0;
-      const costPKR = hoursWorked * hourlyRate * USD_TO_PKR;
+      const monthlySalary = this.toNumber(member.user.monthlySalary);
+      const hourlyRate = this.calculateHourlyRate(monthlySalary);
+      const costPKR = hoursWorked * hourlyRate; // hourlyRate is already in PKR
 
       return {
         id: member.user.id,
         name: `${member.user.firstName} ${member.user.lastName}`,
         role: member.role,
         userType: member.user.userType,
-        monthlySalary: this.toNumber(member.user.monthlySalary),
-        hourlyRate: this.toNumber(member.user.hourlyRate),
+        monthlySalary,
+        hourlyRate,
         hoursWorked: Math.round(hoursWorked * 100) / 100,
         costPKR: Math.round(costPKR),
       };
@@ -811,8 +814,9 @@ export class AccountsService {
 
     const totalHoursWorked =
       developer.timeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 3600;
-    const hourlyRate = this.toNumber(developer.hourlyRate) || 0;
-    const totalEarnings = totalHoursWorked * hourlyRate * USD_TO_PKR;
+    const monthlySalary = this.toNumber(developer.monthlySalary);
+    const hourlyRate = this.calculateHourlyRate(monthlySalary);
+    const totalEarnings = totalHoursWorked * hourlyRate; // hourlyRate is already in PKR
 
     const tasksCompleted = developer.assignedTasks.filter(
       (t) => t.status === 'COMPLETED'
@@ -828,8 +832,8 @@ export class AccountsService {
       email: developer.email,
       role: developer.role,
       userType: developer.userType,
-      monthlySalary: this.toNumber(developer.monthlySalary),
-      hourlyRate: this.toNumber(developer.hourlyRate),
+      monthlySalary,
+      hourlyRate,
       projects,
       totalHoursWorked: Math.round(totalHoursWorked * 100) / 100,
       totalEarnings: Math.round(totalEarnings),
@@ -1010,9 +1014,10 @@ export class AccountsService {
       task.timeEntries.forEach((te: any) => {
         const dev = developers.find((d) => d.id === te.userId);
         if (dev) {
-          const hourlyRate = this.toNumber(dev.hourlyRate) || 0;
+          const monthlySalary = this.toNumber(dev.monthlySalary);
+          const hourlyRate = this.calculateHourlyRate(monthlySalary);
           const hours = (te.duration || 0) / 3600;
-          totalCost += hours * hourlyRate * USD_TO_PKR;
+          totalCost += hours * hourlyRate; // hourlyRate is already in PKR
         }
       });
     });
@@ -1022,8 +1027,8 @@ export class AccountsService {
 
   private getAverageHourlyRate(developers: any[]): number {
     const rates = developers
-      .map((d) => d.hourlyRate)
-      .filter((r) => r !== null && r > 0);
+      .map((d) => this.calculateHourlyRate(this.toNumber(d.monthlySalary)))
+      .filter((r) => r > 0);
     if (rates.length === 0) return 0;
     return rates.reduce((sum, r) => sum + r, 0) / rates.length;
   }
@@ -1076,9 +1081,10 @@ export class AccountsService {
       let hoursWorked = 0;
       timeEntries.forEach((te) => {
         const hours = (te.duration || 0) / 3600;
-        const hourlyRate = this.toNumber(te.user.hourlyRate) || 0;
+        const monthlySalary = this.toNumber(te.user.monthlySalary);
+        const hourlyRate = this.calculateHourlyRate(monthlySalary);
         hoursWorked += hours;
-        costs += hours * hourlyRate * USD_TO_PKR;
+        costs += hours * hourlyRate; // hourlyRate is already in PKR
       });
 
       months.push({

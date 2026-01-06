@@ -13,7 +13,7 @@ export interface CreateUserDTO {
   role: UserRole;
   userType: UserType;
   phone?: string;
-  hourlyRate?: number;
+  monthlySalary?: number;
 }
 
 export interface UpdateUserDTO {
@@ -22,7 +22,7 @@ export interface UpdateUserDTO {
   role?: UserRole;
   userType?: UserType;
   phone?: string;
-  hourlyRate?: number;
+  monthlySalary?: number;
   isActive?: boolean;
 }
 
@@ -140,7 +140,7 @@ export class UserService {
       data: {
         ...data,
         password: hashedPassword,
-        hourlyRate: data.hourlyRate,
+        monthlySalary: data.monthlySalary,
       },
     });
 

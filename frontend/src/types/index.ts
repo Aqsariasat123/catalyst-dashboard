@@ -15,7 +15,7 @@ export interface User {
   userType: UserType;
   avatar?: string;
   phone?: string;
-  hourlyRate?: number;
+  monthlySalary?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

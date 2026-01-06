@@ -83,7 +83,16 @@ const initialUserForm: CreateUserData = {
   role: 'DEVELOPER',
   userType: 'INHOUSE',
   phone: '',
-  hourlyRate: undefined,
+  monthlySalary: undefined,
+};
+
+// Working hours calculation: Mon-Fri = 8h × 5 = 40h, Sat = 4h, Weekly = 44h, Monthly = 44 × 4 = 176h
+const WORKING_HOURS_PER_MONTH = 176;
+
+// Calculate hourly rate from monthly salary
+const calculateHourlyRate = (monthlySalary: number | undefined): number => {
+  if (!monthlySalary || monthlySalary === 0) return 0;
+  return Math.round(monthlySalary / WORKING_HOURS_PER_MONTH);
 };
 
 export default function TeamPage() {
@@ -179,7 +188,7 @@ export default function TeamPage() {
       role: user.role,
       userType: user.userType,
       phone: user.phone || '',
-      hourlyRate: user.hourlyRate,
+      monthlySalary: user.monthlySalary,
     });
     setShowModal(true);
   };
@@ -452,32 +461,37 @@ export default function TeamPage() {
                   </div>
                 </div>
 
-                {/* Phone & Rate Row */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                      Phone
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="+1 234 567 8900"
-                      value={userForm.phone}
-                      onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                      Hourly Rate ($)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="75"
-                      value={userForm.hourlyRate || ''}
-                      onChange={(e) => setUserForm({ ...userForm, hourlyRate: e.target.value ? Number(e.target.value) : undefined })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
-                    />
-                  </div>
+                {/* Phone */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Phone
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="+1 234 567 8900"
+                    value={userForm.phone}
+                    onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                  />
+                </div>
+
+                {/* Monthly Salary */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Monthly Salary (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g., 150000"
+                    value={userForm.monthlySalary || ''}
+                    onChange={(e) => setUserForm({ ...userForm, monthlySalary: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                  />
+                  {userForm.monthlySalary && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Hourly rate: PKR {calculateHourlyRate(userForm.monthlySalary).toLocaleString()}/hr (based on 176 working hours/month)
+                    </p>
+                  )}
                 </div>
 
                 {/* Role Permissions Info */}
@@ -626,10 +640,13 @@ function TeamMemberCard({
             >
               {user.userType === 'INHOUSE' ? 'In-House' : 'Freelancer'}
             </span>
-            {user.hourlyRate && (
-              <span className="text-gray-400">${user.hourlyRate}/hr</span>
-            )}
           </div>
+          {user.monthlySalary && (
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+              <span>PKR {user.monthlySalary.toLocaleString()}/mo</span>
+              <span className="text-gray-400">PKR {calculateHourlyRate(user.monthlySalary).toLocaleString()}/hr</span>
+            </div>
+          )}
         </div>
 
         {isAdmin && !isCurrentUser && (
