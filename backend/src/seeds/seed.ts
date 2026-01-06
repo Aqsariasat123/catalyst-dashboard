@@ -52,7 +52,7 @@ async function main() {
       lastName: 'Smith',
       role: 'DEVELOPER',
       userType: 'INHOUSE',
-      hourlyRate: 75,
+      monthlySalary: 150000, // PKR 150,000/month = ~PKR 852/hr
     },
   });
   console.log('✓ Created Developer:', john.email);
@@ -65,7 +65,7 @@ async function main() {
       lastName: 'Wilson',
       role: 'DEVELOPER',
       userType: 'INHOUSE',
-      hourlyRate: 70,
+      monthlySalary: 120000, // PKR 120,000/month = ~PKR 682/hr
     },
   });
   console.log('✓ Created Developer:', emma.email);
@@ -78,7 +78,7 @@ async function main() {
       lastName: 'Johnson',
       role: 'DEVELOPER',
       userType: 'FREELANCER',
-      hourlyRate: 85,
+      monthlySalary: 180000, // PKR 180,000/month = ~PKR 1,023/hr
     },
   });
   console.log('✓ Created Freelancer:', mike.email);
