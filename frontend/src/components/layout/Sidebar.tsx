@@ -192,76 +192,98 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           </button>
 
           <Popover className="relative">
-            <Popover.Button
-              className="relative p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all focus:outline-none"
-              title="Notifications"
-            >
-              <BellIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-redstone-500 rounded-full" />
-              )}
-            </Popover.Button>
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-200"
-              enterFrom="opacity-0 translate-y-1"
-              enterTo="opacity-100 translate-y-0"
-              leave="transition ease-in duration-150"
-              leaveFrom="opacity-100 translate-y-0"
-              leaveTo="opacity-0 translate-y-1"
-            >
-              <Popover.Panel className="absolute left-0 z-50 mt-2 w-80 origin-top-left rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl focus:outline-none overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Notifications
-                  </h3>
+            {({ open }) => (
+              <>
+                <Popover.Button
+                  className={cn(
+                    "relative p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none",
+                    open && "ring-2 ring-redstone-500 bg-gray-300 dark:bg-gray-700"
+                  )}
+                  title="Notifications"
+                >
+                  <BellIcon className={cn(
+                    "w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform duration-200",
+                    open && "scale-110 text-redstone-500"
+                  )} />
                   {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      className="text-xs text-redstone-500 hover:text-redstone-600 font-medium"
-                    >
-                      Mark all read
-                    </button>
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-redstone-500 rounded-full animate-pulse" />
                   )}
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="px-4 py-8 text-center">
-                      <BellIcon className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet</p>
-                    </div>
-                  ) : (
-                    notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
-                        className={cn(
-                          'px-4 py-3 border-b border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
-                          !notification.isRead && 'bg-redstone-50 dark:bg-redstone-500/5'
+                </Popover.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-300"
+                  enterFrom="opacity-0 scale-95 -translate-y-2"
+                  enterTo="opacity-100 scale-100 translate-y-0"
+                  leave="transition ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100 translate-y-0"
+                  leaveTo="opacity-0 scale-95 -translate-y-2"
+                >
+                  <Popover.Panel className="absolute left-0 z-50 mt-2 w-80 origin-top-left rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl focus:outline-none overflow-hidden backdrop-blur-sm">
+                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BellIcon className="w-4 h-4 text-redstone-500" />
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                          Notifications
+                        </h3>
+                        {unreadCount > 0 && (
+                          <span className="px-1.5 py-0.5 text-xs font-medium bg-redstone-500 text-white rounded-full">
+                            {unreadCount}
+                          </span>
                         )}
-                      >
-                        <div className="flex items-start gap-3">
-                          {!notification.isRead && (
-                            <span className="w-2 h-2 mt-1.5 bg-redstone-500 rounded-full flex-shrink-0" />
-                          )}
-                          <div className={cn(!notification.isRead ? '' : 'ml-5')}>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {notification.title}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                            </p>
-                          </div>
-                        </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </Popover.Panel>
-            </Transition>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllAsRead}
+                          className="text-xs text-redstone-500 hover:text-redstone-600 font-medium hover:underline transition-all"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-10 text-center">
+                          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <BellIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                          </div>
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No notifications yet</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">We'll notify you when something arrives</p>
+                        </div>
+                      ) : (
+                        notifications.map((notification, index) => (
+                          <div
+                            key={notification.id}
+                            onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                            className={cn(
+                              'px-4 py-3 border-b border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200',
+                              !notification.isRead && 'bg-redstone-50 dark:bg-redstone-500/10 hover:bg-redstone-100 dark:hover:bg-redstone-500/20'
+                            )}
+                            style={{ animationDelay: `${index * 50}ms` }}
+                          >
+                            <div className="flex items-start gap-3">
+                              {!notification.isRead && (
+                                <span className="w-2 h-2 mt-1.5 bg-redstone-500 rounded-full flex-shrink-0 animate-pulse" />
+                              )}
+                              <div className={cn(!notification.isRead ? '' : 'ml-5')}>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </Popover.Panel>
+                </Transition>
+              </>
+            )}
           </Popover>
         </div>
 
