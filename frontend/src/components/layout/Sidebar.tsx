@@ -91,14 +91,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
               <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
-                <path d="M8 32L16 8H22L14 32H8Z" fill="url(#redGradient1)" />
-                <path d="M18 32L26 8H32L24 32H18Z" fill="url(#redGradient2)" />
+                <rect x="6" y="6" width="10" height="28" rx="3" transform="skewX(-12)" fill="url(#redGradient1)" />
+                <rect x="20" y="6" width="10" height="28" rx="3" transform="skewX(-12)" fill="url(#redGradient2)" />
                 <defs>
-                  <linearGradient id="redGradient1" x1="12" y1="8" x2="12" y2="32" gradientUnits="userSpaceOnUse">
+                  <linearGradient id="redGradient1" x1="11" y1="6" x2="11" y2="34" gradientUnits="userSpaceOnUse">
                     <stop stopColor="#ef4444" />
                     <stop offset="1" stopColor="#dc2626" />
                   </linearGradient>
-                  <linearGradient id="redGradient2" x1="25" y1="8" x2="25" y2="32" gradientUnits="userSpaceOnUse">
+                  <linearGradient id="redGradient2" x1="25" y1="6" x2="25" y2="34" gradientUnits="userSpaceOnUse">
                     <stop stopColor="#ef4444" />
                     <stop offset="1" stopColor="#dc2626" />
                   </linearGradient>
