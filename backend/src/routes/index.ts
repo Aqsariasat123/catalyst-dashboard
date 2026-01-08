@@ -13,6 +13,7 @@ import hrRoutes from './hr.routes.js';
 import recruitmentRoutes from './recruitment.routes.js';
 import jobPostRoutes from './jobpost.routes.js';
 import aiAssistantRoutes from './ai-assistant.routes.js';
+import notificationRoutes from './notification.routes.js';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.use('/hr', hrRoutes);
 router.use('/recruitment', recruitmentRoutes);
 router.use('/job-posts', jobPostRoutes);
 router.use('/ai-assistant', aiAssistantRoutes);
+router.use('/notifications', notificationRoutes);
 router.use('/', milestoneRoutes);
 
 export default router;

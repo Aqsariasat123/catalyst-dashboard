@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Fragment } from 'react';
-import { Menu, Transition } from '@headlessui/react';
+import { Fragment, useState, useEffect } from 'react';
+import { Menu, Transition, Popover } from '@headlessui/react';
 import {
   Squares2X2Icon,
   FolderOpenIcon,
@@ -23,6 +23,8 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { cn, getUserRoleLabel } from '@/utils/helpers';
+import { notificationService, Notification } from '@/services/notification.service';
+import { formatDistanceToNow } from 'date-fns';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -36,6 +38,50 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const { user, logout } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'PROJECT_MANAGER';
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const [notifs, count] = await Promise.all([
+          notificationService.getNotifications(),
+          notificationService.getUnreadCount()
+        ]);
+        setNotifications(notifs);
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    };
+
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -145,13 +191,78 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             )}
           </button>
 
-          <button
-            className="relative p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all"
-            title="Notifications"
-          >
-            <BellIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-redstone-500 rounded-full" />
-          </button>
+          <Popover className="relative">
+            <Popover.Button
+              className="relative p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all focus:outline-none"
+              title="Notifications"
+            >
+              <BellIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-redstone-500 rounded-full" />
+              )}
+            </Popover.Button>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-200"
+              enterFrom="opacity-0 translate-y-1"
+              enterTo="opacity-100 translate-y-0"
+              leave="transition ease-in duration-150"
+              leaveFrom="opacity-100 translate-y-0"
+              leaveTo="opacity-0 translate-y-1"
+            >
+              <Popover.Panel className="absolute left-0 z-50 mt-2 w-80 origin-top-left rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl focus:outline-none overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Notifications
+                  </h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="text-xs text-redstone-500 hover:text-redstone-600 font-medium"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <BellIcon className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                        className={cn(
+                          'px-4 py-3 border-b border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
+                          !notification.isRead && 'bg-redstone-50 dark:bg-redstone-500/5'
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          {!notification.isRead && (
+                            <span className="w-2 h-2 mt-1.5 bg-redstone-500 rounded-full flex-shrink-0" />
+                          )}
+                          <div className={cn(!notification.isRead ? '' : 'ml-5')}>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {notification.title}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Popover.Panel>
+            </Transition>
+          </Popover>
         </div>
 
         {/* Navigation */}
