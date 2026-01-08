@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ShieldCheckIcon,
   UserIcon,
@@ -30,14 +30,36 @@ const availablePermissions: Permission[] = [
   { key: 'manage_tasks', label: 'Manage Tasks', description: 'Can create, edit, and delete tasks', category: 'Tasks' },
   { key: 'assign_tasks', label: 'Assign Tasks', description: 'Can assign tasks to team members', category: 'Tasks' },
 
-  // Financial Permissions
-  { key: 'view_financials', label: 'View Financials', description: 'Can see financial reports and data', category: 'Finance' },
-  { key: 'manage_transactions', label: 'Manage Transactions', description: 'Can create and edit transactions', category: 'Finance' },
-  { key: 'view_milestone_amounts', label: 'View Milestone Amounts', description: 'Can see milestone payment amounts', category: 'Finance' },
+  // Client Permissions
+  { key: 'view_clients', label: 'View Clients', description: 'Can see all clients', category: 'Clients' },
+  { key: 'manage_clients', label: 'Manage Clients', description: 'Can create, edit, and delete clients', category: 'Clients' },
+
+  // Time Tracking Permissions
+  { key: 'view_all_time_entries', label: 'View All Time Entries', description: 'Can see all team time entries', category: 'Time Tracking' },
+  { key: 'manage_time_entries', label: 'Manage Time Entries', description: 'Can edit/delete any time entries', category: 'Time Tracking' },
 
   // Team Permissions
   { key: 'view_team', label: 'View Team', description: 'Can see team member information', category: 'Team' },
   { key: 'manage_team', label: 'Manage Team', description: 'Can add/remove team members', category: 'Team' },
+
+  // HR Permissions
+  { key: 'view_hr', label: 'View HR Section', description: 'Can access HR section', category: 'HR' },
+  { key: 'manage_employees', label: 'Manage Employees', description: 'Can manage employee profiles', category: 'HR' },
+  { key: 'manage_attendance', label: 'Manage Attendance', description: 'Can manage attendance records', category: 'HR' },
+  { key: 'manage_leaves', label: 'Manage Leaves', description: 'Can approve/reject leave requests', category: 'HR' },
+  { key: 'view_payroll', label: 'View Payroll', description: 'Can see payroll information', category: 'HR' },
+  { key: 'manage_payroll', label: 'Manage Payroll', description: 'Can generate and manage payroll', category: 'HR' },
+
+  // Recruitment Permissions
+  { key: 'view_recruitment', label: 'View Recruitment', description: 'Can access recruitment section', category: 'Recruitment' },
+  { key: 'manage_job_posts', label: 'Manage Job Posts', description: 'Can create and manage job postings', category: 'Recruitment' },
+  { key: 'manage_candidates', label: 'Manage Candidates', description: 'Can manage candidate applications', category: 'Recruitment' },
+
+  // Accounts/Finance Permissions
+  { key: 'view_accounts', label: 'View Accounts', description: 'Can access accounts section', category: 'Accounts' },
+  { key: 'view_financials', label: 'View Financials', description: 'Can see financial reports and data', category: 'Accounts' },
+  { key: 'manage_transactions', label: 'Manage Transactions', description: 'Can create and edit transactions', category: 'Accounts' },
+  { key: 'view_milestone_amounts', label: 'View Milestone Amounts', description: 'Can see milestone payment amounts', category: 'Accounts' },
 
   // Report Permissions
   { key: 'view_reports', label: 'View Reports', description: 'Can access reports section', category: 'Reports' },
@@ -50,8 +72,12 @@ const defaultPermissionsByRole: Record<string, string[]> = {
   PROJECT_MANAGER: [
     'view_all_projects', 'manage_projects', 'view_project_budget',
     'view_all_tasks', 'manage_tasks', 'assign_tasks',
-    'view_financials', 'view_milestone_amounts',
+    'view_clients', 'manage_clients',
+    'view_all_time_entries', 'manage_time_entries',
     'view_team', 'manage_team',
+    'view_hr', 'manage_employees', 'manage_attendance', 'manage_leaves', 'view_payroll', 'manage_payroll',
+    'view_recruitment', 'manage_job_posts', 'manage_candidates',
+    'view_accounts', 'view_financials', 'manage_transactions', 'view_milestone_amounts',
     'view_reports', 'export_reports',
   ],
   DEVELOPER: [
@@ -69,9 +95,11 @@ const defaultPermissionsByRole: Record<string, string[]> = {
 };
 
 export default function PermissionsPage() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ['allUsers'],
@@ -89,9 +117,11 @@ export default function PermissionsPage() {
 
   const handleSelectUser = (user: any) => {
     setSelectedUser(user);
-    // Load user's custom permissions or default based on role
-    const customPermissions = user.permissions || defaultPermissionsByRole[user.userType] || [];
-    setUserPermissions(customPermissions);
+    // Load user's saved permissions, or default based on role if no custom permissions
+    const savedPermissions = user.permissions && user.permissions.length > 0
+      ? user.permissions
+      : defaultPermissionsByRole[user.role] || [];
+    setUserPermissions(savedPermissions);
   };
 
   const togglePermission = (permissionKey: string) => {
@@ -105,21 +135,21 @@ export default function PermissionsPage() {
   const handleSavePermissions = async () => {
     if (!selectedUser) return;
 
+    setIsSaving(true);
     try {
-      // Note: This would need a backend endpoint to save custom permissions
-      // For now, we'll just show a success message
+      await userService.updatePermissions(selectedUser.id, userPermissions);
+      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
       toast.success(`Permissions updated for ${selectedUser.firstName} ${selectedUser.lastName}`);
-      // In a real implementation, you would call:
-      // await userService.updatePermissions(selectedUser.id, userPermissions);
-      // queryClient.invalidateQueries({ queryKey: ['allUsers'] });
     } catch (error) {
       toast.error('Failed to update permissions');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleResetToDefault = () => {
     if (!selectedUser) return;
-    const defaultPerms = defaultPermissionsByRole[selectedUser.userType] || [];
+    const defaultPerms = defaultPermissionsByRole[selectedUser.role] || [];
     setUserPermissions(defaultPerms);
     toast.success('Reset to default permissions for role');
   };
@@ -327,10 +357,11 @@ export default function PermissionsPage() {
                 </button>
                 <button
                   onClick={handleSavePermissions}
-                  className="px-4 py-2 text-sm font-medium text-white bg-redstone-600 hover:bg-redstone-700 rounded-lg transition-colors flex items-center gap-2"
+                  disabled={isSaving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-redstone-600 hover:bg-redstone-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
                 >
                   <ShieldCheckIcon className="w-4 h-4" />
-                  Save Permissions
+                  {isSaving ? 'Saving...' : 'Save Permissions'}
                 </button>
               </div>
             </div>

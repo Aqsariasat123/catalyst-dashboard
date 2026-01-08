@@ -97,6 +97,19 @@ export class UserController {
       next(error);
     }
   }
+
+  async updatePermissions(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { permissions } = req.body;
+      if (!Array.isArray(permissions)) {
+        return res.status(400).json({ message: 'Permissions must be an array' });
+      }
+      const user = await userService.updatePermissions(req.params.id, permissions);
+      sendSuccess(res, user, 'Permissions updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const userController = new UserController();

@@ -178,6 +178,17 @@ export class UserService {
 
     return excludeFields(user, ['password']);
   }
+
+  async updatePermissions(id: string, permissions: string[]) {
+    await this.findById(id);
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { permissions },
+    });
+
+    return excludeFields(user, ['password']);
+  }
 }
 
 export const userService = new UserService();

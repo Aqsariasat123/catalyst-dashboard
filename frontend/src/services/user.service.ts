@@ -73,4 +73,9 @@ export const userService = {
     const response = await api.post<ApiResponse<User>>(`/users/${id}/deactivate`);
     return response.data.data!;
   },
+
+  async updatePermissions(id: string, permissions: string[]): Promise<User> {
+    const response = await api.patch<ApiResponse<User>>(`/users/${id}/permissions`, { permissions });
+    return response.data.data!;
+  },
 };

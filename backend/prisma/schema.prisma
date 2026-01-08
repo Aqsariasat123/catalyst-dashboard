@@ -243,6 +243,7 @@ model User {
   phone         String?
   hourlyRate    Decimal?  @db.Decimal(10, 2)
   monthlySalary Decimal?  @db.Decimal(12, 2)  // Monthly salary in PKR
+  permissions   String[]  @default([])       // Custom permissions array
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

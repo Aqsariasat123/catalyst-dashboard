@@ -167,4 +167,35 @@ router.delete('/:id', isAdmin, userController.delete.bind(userController));
  */
 router.post('/:id/deactivate', isAdmin, userController.deactivate.bind(userController));
 
+/**
+ * @swagger
+ * /api/users/{id}/permissions:
+ *   patch:
+ *     tags: [Users]
+ *     summary: Update user permissions (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Permissions updated
+ */
+router.patch('/:id/permissions', isAdmin, userController.updatePermissions.bind(userController));
+
 export default router;
