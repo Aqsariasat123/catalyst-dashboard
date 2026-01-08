@@ -48,10 +48,11 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center gap-4 mb-12">
             <div className="w-14 h-14 flex items-center justify-center">
-              <svg className="w-14 h-14" viewBox="0 0 40 40" fill="none">
-                <rect x="4" y="4" width="12" height="32" rx="2" transform="rotate(-15 10 20)" fill="#B91C1C" />
-                <rect x="20" y="4" width="12" height="32" rx="2" transform="rotate(-15 26 20)" fill="#B91C1C" />
-              </svg>
+              <img
+                src="/assets/logo-dark.png"
+                alt="Redstone Catalyst"
+                className="w-14 h-14 object-contain"
+              />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">Redstone Catalyst</h1>
@@ -93,10 +94,11 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
             <div className="w-12 h-12 flex items-center justify-center">
-              <svg className="w-12 h-12" viewBox="0 0 40 40" fill="none">
-                <rect x="4" y="4" width="12" height="32" rx="2" transform="rotate(-15 10 20)" fill="#B91C1C" />
-                <rect x="20" y="4" width="12" height="32" rx="2" transform="rotate(-15 26 20)" fill="#B91C1C" />
-              </svg>
+              <img
+                src="/assets/logo-dark.png"
+                alt="Redstone Catalyst"
+                className="w-12 h-12 object-contain"
+              />
             </div>
             <span className="text-2xl font-bold text-white">Redstone Catalyst</span>
           </div>

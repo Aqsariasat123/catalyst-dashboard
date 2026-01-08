@@ -90,10 +90,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         )}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
-                <rect x="4" y="4" width="12" height="32" rx="2" transform="rotate(-15 10 20)" fill="#B91C1C" />
-                <rect x="20" y="4" width="12" height="32" rx="2" transform="rotate(-15 26 20)" fill="#B91C1C" />
-              </svg>
+              <img
+                src={theme === 'dark' ? '/assets/logo-dark.png' : '/assets/logo-light.png'}
+                alt="Redstone Catalyst"
+                className="w-10 h-10 object-contain"
+              />
             </div>
             {!isCollapsed && (
               <div>
