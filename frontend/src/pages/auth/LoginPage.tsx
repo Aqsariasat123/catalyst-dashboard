@@ -49,16 +49,16 @@ export default function LoginPage() {
           <div className="flex items-center gap-4 mb-12">
             <div className="w-14 h-14 flex items-center justify-center">
               <svg className="w-14 h-14" viewBox="0 0 40 40" fill="none">
-                <rect x="6" y="6" width="10" height="28" rx="3" transform="skewX(-12)" fill="url(#redGradientLogin1)" />
-                <rect x="20" y="6" width="10" height="28" rx="3" transform="skewX(-12)" fill="url(#redGradientLogin2)" />
+                <path d="M6 34L14 6H22L14 34H6Z" fill="url(#redGradientLogin1)" />
+                <path d="M20 34L28 6H36L28 34H20Z" fill="url(#redGradientLogin2)" />
                 <defs>
-                  <linearGradient id="redGradientLogin1" x1="11" y1="6" x2="11" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#ef4444" />
-                    <stop offset="1" stopColor="#dc2626" />
+                  <linearGradient id="redGradientLogin1" x1="14" y1="6" x2="10" y2="34" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#c92a2a" />
+                    <stop offset="1" stopColor="#a51d1d" />
                   </linearGradient>
-                  <linearGradient id="redGradientLogin2" x1="25" y1="6" x2="25" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#ef4444" />
-                    <stop offset="1" stopColor="#dc2626" />
+                  <linearGradient id="redGradientLogin2" x1="28" y1="6" x2="24" y2="34" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#c92a2a" />
+                    <stop offset="1" stopColor="#a51d1d" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -104,16 +104,16 @@ export default function LoginPage() {
           <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
             <div className="w-12 h-12 flex items-center justify-center">
               <svg className="w-12 h-12" viewBox="0 0 40 40" fill="none">
-                <rect x="6" y="6" width="10" height="28" rx="3" transform="skewX(-12)" fill="url(#redGradientMobile1)" />
-                <rect x="20" y="6" width="10" height="28" rx="3" transform="skewX(-12)" fill="url(#redGradientMobile2)" />
+                <path d="M6 34L14 6H22L14 34H6Z" fill="url(#redGradientMobile1)" />
+                <path d="M20 34L28 6H36L28 34H20Z" fill="url(#redGradientMobile2)" />
                 <defs>
-                  <linearGradient id="redGradientMobile1" x1="11" y1="6" x2="11" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#ef4444" />
-                    <stop offset="1" stopColor="#dc2626" />
+                  <linearGradient id="redGradientMobile1" x1="14" y1="6" x2="10" y2="34" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#c92a2a" />
+                    <stop offset="1" stopColor="#a51d1d" />
                   </linearGradient>
-                  <linearGradient id="redGradientMobile2" x1="25" y1="6" x2="25" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#ef4444" />
-                    <stop offset="1" stopColor="#dc2626" />
+                  <linearGradient id="redGradientMobile2" x1="28" y1="6" x2="24" y2="34" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#c92a2a" />
+                    <stop offset="1" stopColor="#a51d1d" />
                   </linearGradient>
                 </defs>
               </svg>
