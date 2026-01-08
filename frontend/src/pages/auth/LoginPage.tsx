@@ -54,7 +54,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Redstone</h1>
+              <h1 className="text-3xl font-bold text-white">Redstone Catalyst</h1>
               <p className="text-dark-400 text-sm">Task Management</p>
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function LoginPage() {
                 <rect x="3" y="14" width="12" height="4" rx="1" />
               </svg>
             </div>
-            <span className="text-2xl font-bold text-white">Redstone</span>
+            <span className="text-2xl font-bold text-white">Redstone Catalyst</span>
           </div>
 
           <div className="mb-10">

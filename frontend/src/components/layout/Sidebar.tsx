@@ -98,7 +98,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             {!isCollapsed && (
               <div>
                 <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-                  Redstone
+                  Redstone Catalyst
                 </span>
               </div>
             )}
