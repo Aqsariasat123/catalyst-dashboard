@@ -89,10 +89,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           isCollapsed ? 'px-3 justify-center' : 'px-4 justify-between'
         )}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-redstone-500 to-redstone-700 rounded-xl flex items-center justify-center shadow-lg shadow-redstone-500/20 flex-shrink-0">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="8" width="18" height="4" rx="1" />
-                <rect x="3" y="14" width="12" height="4" rx="1" />
+            <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                <path d="M8 32L16 8H22L14 32H8Z" fill="url(#redGradient1)" />
+                <path d="M18 32L26 8H32L24 32H18Z" fill="url(#redGradient2)" />
+                <defs>
+                  <linearGradient id="redGradient1" x1="12" y1="8" x2="12" y2="32" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#ef4444" />
+                    <stop offset="1" stopColor="#dc2626" />
+                  </linearGradient>
+                  <linearGradient id="redGradient2" x1="25" y1="8" x2="25" y2="32" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#ef4444" />
+                    <stop offset="1" stopColor="#dc2626" />
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
             {!isCollapsed && (
