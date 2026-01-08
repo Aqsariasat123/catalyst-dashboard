@@ -1,4 +1,4 @@
-import { MilestoneStatus, Prisma } from '@prisma/client';
+import { MilestoneStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -11,10 +11,12 @@ export interface CreateMilestoneDTO {
   dueDate?: Date;
 }
 
-export interface UpdateMilestoneDTO extends Partial<CreateMilestoneDTO> {}
+export interface UpdateMilestoneDTO extends Partial<CreateMilestoneDTO> {
+  paymentStatus?: PaymentStatus | null;
+}
 
 export class MilestoneService {
-  async findByProject(projectId: string) {
+  async findByProject(projectId: string, userId?: string, userRole?: string) {
     // Verify project exists
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -24,10 +26,17 @@ export class MilestoneService {
       throw new AppError('Project not found', 404);
     }
 
+    // Build task filter for developers/designers
+    const taskWhere: Prisma.TaskWhereInput = {};
+    if ((userRole === 'DEVELOPER' || userRole === 'DESIGNER') && userId) {
+      taskWhere.assigneeId = userId;
+    }
+
     const milestones = await prisma.milestone.findMany({
       where: { projectId },
       include: {
         tasks: {
+          where: taskWhere,
           include: {
             assignee: {
               select: {
@@ -225,6 +234,8 @@ export class MilestoneService {
         currency: data.currency,
         status: data.status,
         dueDate: data.dueDate,
+        paymentStatus: data.paymentStatus,
+        releasedAt: data.paymentStatus === 'RELEASED' ? new Date() : null,
       },
       include: {
         project: {

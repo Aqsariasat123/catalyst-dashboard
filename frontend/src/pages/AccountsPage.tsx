@@ -9,6 +9,7 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   CheckCircleIcon,
+  CheckIcon,
   PlusIcon,
   XMarkIcon,
   PencilIcon,
@@ -18,15 +19,21 @@ import {
   ExclamationTriangleIcon,
   CalculatorIcon,
   CogIcon,
+  ArrowUpTrayIcon,
+  DocumentTextIcon,
+  MagnifyingGlassIcon,
+  WalletIcon,
 } from '@heroicons/react/24/outline';
 import { accountsService, AccountsOverview, Milestone } from '@/services/accounts.service';
+import { payrollService, Payroll } from '@/services/hr.service';
 import { projectService } from '@/services/project.service';
+import { transactionService } from '@/services/transaction.service';
 import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { cn } from '@/utils/helpers';
 import toast from 'react-hot-toast';
 
-type TabType = 'overview' | 'projects' | 'finance' | 'developers' | 'milestones' | 'time';
+type TabType = 'overview' | 'projects' | 'finance' | 'developers' | 'milestones' | 'time' | 'transactions' | 'salaries';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: ChartBarIcon },
@@ -35,6 +42,8 @@ const tabs = [
   { id: 'developers', label: 'Developer Costs', icon: UserGroupIcon },
   { id: 'milestones', label: 'Milestones', icon: BanknotesIcon },
   { id: 'time', label: 'Time Analysis', icon: ClockIcon },
+  { id: 'transactions', label: 'Transactions', icon: DocumentTextIcon },
+  { id: 'salaries', label: 'Salary Records', icon: WalletIcon },
 ];
 
 export default function AccountsPage() {
@@ -113,6 +122,8 @@ export default function AccountsPage() {
             />
           )}
           {activeTab === 'time' && <TimeAnalysisTab overview={overview} />}
+          {activeTab === 'transactions' && <TransactionsTab />}
+          {activeTab === 'salaries' && <SalaryRecordsTab />}
         </>
       )}
 
@@ -306,9 +317,45 @@ function OverviewTab({ overview }: { overview?: AccountsOverview }) {
 }
 
 function ProjectsTab({ overview }: { overview?: AccountsOverview }) {
+  const [editingFee, setEditingFee] = useState<string | null>(null);
+  const [feeValue, setFeeValue] = useState('');
+  const queryClient = useQueryClient();
+
+  const updateFeeMutation = useMutation({
+    mutationFn: ({ projectId, platformFeePercent }: { projectId: string; platformFeePercent: number }) =>
+      accountsService.updateProjectFinancials(projectId, { platformFeePercent }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts-overview'] });
+      toast.success('Platform fee updated');
+      setEditingFee(null);
+    },
+    onError: () => {
+      toast.error('Failed to update platform fee');
+    },
+  });
+
   if (!overview) return null;
 
   const { projectBreakdown } = overview;
+
+  const handleFeeEdit = (projectId: string, currentFee: number) => {
+    setEditingFee(projectId);
+    setFeeValue(currentFee.toString());
+  };
+
+  const handleFeeSave = (projectId: string) => {
+    const fee = parseFloat(feeValue) || 0;
+    if (fee < 0 || fee > 100) {
+      toast.error('Fee must be between 0 and 100%');
+      return;
+    }
+    updateFeeMutation.mutate({ projectId, platformFeePercent: fee });
+  };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    const symbols: Record<string, string> = { USD: '$', GBP: '£', EUR: '€', AUD: 'A$', PKR: 'Rs', CAD: 'C$' };
+    return `${symbols[currency] || currency}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -316,6 +363,9 @@ function ProjectsTab({ overview }: { overview?: AccountsOverview }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Project Financial Summary</CardTitle>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Set platform fee % for each project. When milestones are released, transactions will auto-deduct the fee.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -328,92 +378,141 @@ function ProjectsTab({ overview }: { overview?: AccountsOverview }) {
                   <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
                     Client
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
-                    Status
+                  <th className="text-center py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+                    Fee %
                   </th>
                   <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
-                    Budget (PKR)
+                    Gross
                   </th>
                   <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
-                    Spent (PKR)
+                    Fee Deducted
+                  </th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+                    Net Received
                   </th>
                   <th className="text-center py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
                     Milestones
                   </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
-                    Hours
+                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+                    Status
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {projectBreakdown.map((project) => {
-                  const budgetUsed = project.budget
-                    ? Math.round((project.spent / project.budget) * 100)
-                    : 0;
-                  return (
-                    <tr
-                      key={project.id}
-                      className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                    >
-                      <td className="py-3 px-4">
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {project.name}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                        {project.client}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={cn(
-                            'px-2 py-1 rounded-md text-xs font-medium',
-                            getStatusBadge(project.status)
-                          )}
-                        >
-                          {project.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-900 dark:text-white">
-                        {project.budget ? formatPKR(project.budget) : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="text-gray-900 dark:text-white">
-                            {formatPKR(project.spent)}
-                          </span>
-                          {project.budget && (
-                            <span
-                              className={cn(
-                                'text-xs',
-                                budgetUsed > 100
-                                  ? 'text-red-500'
-                                  : budgetUsed > 80
-                                  ? 'text-amber-500'
-                                  : 'text-gray-400'
-                              )}
-                            >
-                              {budgetUsed}% of budget
-                            </span>
-                          )}
+                {projectBreakdown.map((project) => (
+                  <tr
+                    key={project.id}
+                    className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  >
+                    <td className="py-3 px-4">
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {project.name}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+                      {project.client}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {editingFee === project.id ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={feeValue}
+                            onChange={(e) => setFeeValue(e.target.value)}
+                            className="w-16 px-2 py-1 text-center text-sm bg-white dark:bg-black border border-gray-300 dark:border-gray-600 rounded"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleFeeSave(project.id);
+                              if (e.key === 'Escape') setEditingFee(null);
+                            }}
+                            autoFocus
+                          />
+                          <span className="text-gray-400">%</span>
+                          <button
+                            onClick={() => handleFeeSave(project.id)}
+                            className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded"
+                          >
+                            <CheckIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingFee(null)}
+                            className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                          {project.milestonesReleased}
-                        </span>
-                        <span className="text-gray-400">/{project.totalMilestones}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">
-                        {project.hoursWorked}h
-                      </td>
-                    </tr>
-                  );
-                })}
+                      ) : (
+                        <button
+                          onClick={() => handleFeeEdit(project.id, project.platformFeePercent)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        >
+                          {project.platformFeePercent}%
+                          <PencilIcon className="w-3 h-3 text-gray-400" />
+                        </button>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right text-gray-900 dark:text-white font-medium">
+                      {project.grossAmount > 0 ? formatCurrency(project.grossAmount, project.currency) : '-'}
+                    </td>
+                    <td className="py-3 px-4 text-right text-red-600 dark:text-red-400">
+                      {project.feeAmount > 0 ? `-${formatCurrency(project.feeAmount, project.currency)}` : '-'}
+                    </td>
+                    <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-medium">
+                      {project.netAmount > 0 ? formatCurrency(project.netAmount, project.currency) : '-'}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                        {project.milestonesReleased}
+                      </span>
+                      <span className="text-gray-400">/{project.totalMilestones}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={cn(
+                          'px-2 py-1 rounded-md text-xs font-medium',
+                          getStatusBadge(project.status)
+                        )}
+                      >
+                        {project.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Gross</div>
+          <div className="text-xl font-bold text-gray-900 dark:text-white mt-1">
+            ${projectBreakdown.reduce((sum, p) => sum + (p.currency === 'USD' ? p.grossAmount : 0), 0).toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Fees</div>
+          <div className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
+            -${projectBreakdown.reduce((sum, p) => sum + (p.currency === 'USD' ? p.feeAmount : 0), 0).toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Net</div>
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+            ${projectBreakdown.reduce((sum, p) => sum + (p.currency === 'USD' ? p.netAmount : 0), 0).toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Fee %</div>
+          <div className="text-xl font-bold text-gray-900 dark:text-white mt-1">
+            {(projectBreakdown.reduce((sum, p) => sum + p.platformFeePercent, 0) / Math.max(projectBreakdown.length, 1)).toFixed(1)}%
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -573,8 +672,8 @@ function MilestonesTab({
     },
   });
 
-  const released = milestones.filter((m) => m.status === 'RELEASED');
-  const pending = milestones.filter((m) => m.status !== 'RELEASED' && m.status !== 'CANCELLED');
+  const released = milestones.filter((m) => m.status === 'COMPLETED');
+  const pending = milestones.filter((m) => m.status !== 'COMPLETED' && m.status !== 'CANCELLED');
   const totalAmount = milestones.reduce((sum, m) => sum + (m.amountPKR || 0), 0);
   const releasedAmount = released.reduce((sum, m) => sum + (m.amountPKR || 0), 0);
 
@@ -719,9 +818,9 @@ function MilestonesTab({
                             getMilestoneStatusBadge(milestone.status)
                           )}
                         >
-                          <option value="PENDING">Pending</option>
+                          <option value="NOT_STARTED">Pending</option>
                           <option value="IN_PROGRESS">In Progress</option>
-                          <option value="RELEASED">Released</option>
+                          <option value="COMPLETED">Released</option>
                           <option value="CANCELLED">Cancelled</option>
                         </select>
                       </td>
@@ -1635,6 +1734,994 @@ function MilestoneModal({
   );
 }
 
+// Date range presets
+type DateRangePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'thisYear' | 'custom';
+
+function getDateRange(preset: DateRangePreset): { startDate?: string; endDate?: string } {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  switch (preset) {
+    case 'today':
+      return { startDate: today.toISOString(), endDate: now.toISOString() };
+    case 'yesterday': {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return { startDate: yesterday.toISOString(), endDate: today.toISOString() };
+    }
+    case 'thisWeek': {
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      return { startDate: startOfWeek.toISOString(), endDate: now.toISOString() };
+    }
+    case 'thisMonth': {
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { startDate: startOfMonth.toISOString(), endDate: now.toISOString() };
+    }
+    case 'thisYear': {
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      return { startDate: startOfYear.toISOString(), endDate: now.toISOString() };
+    }
+    default:
+      return {};
+  }
+}
+
+// Currency symbols and colors
+const currencyConfig: Record<string, { symbol: string; color: string }> = {
+  USD: { symbol: '$', color: 'emerald' },
+  GBP: { symbol: '£', color: 'blue' },
+  EUR: { symbol: '€', color: 'indigo' },
+  AUD: { symbol: 'A$', color: 'cyan' },
+  PKR: { symbol: 'Rs', color: 'amber' },
+  CAD: { symbol: 'C$', color: 'red' },
+};
+
+function TransactionsTab() {
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [datePreset, setDatePreset] = useState<DateRangePreset>('all');
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const [filters, setFilters] = useState({
+    search: '',
+    type: '',
+    currency: '',
+    startDate: '',
+    endDate: '',
+    page: 1,
+  });
+
+  const queryClient = useQueryClient();
+
+  // Update filters when date preset changes
+  const handleDatePresetChange = (preset: DateRangePreset) => {
+    setDatePreset(preset);
+    if (preset === 'custom') {
+      return; // Don't update filters, wait for custom date input
+    }
+    const range = getDateRange(preset);
+    setFilters({ ...filters, startDate: range.startDate || '', endDate: range.endDate || '', page: 1 });
+  };
+
+  const handleCustomDateApply = () => {
+    setFilters({
+      ...filters,
+      startDate: customDateRange.start ? new Date(customDateRange.start).toISOString() : '',
+      endDate: customDateRange.end ? new Date(customDateRange.end + 'T23:59:59').toISOString() : '',
+      page: 1,
+    });
+  };
+
+  const { data: transactionsData, isLoading } = useQuery({
+    queryKey: ['transactions', filters],
+    queryFn: () => transactionService.getAll({
+      ...filters,
+      limit: 50,
+    }),
+  });
+
+  const { data: summary } = useQuery({
+    queryKey: ['transaction-summary', filters.startDate, filters.endDate],
+    queryFn: () => transactionService.getSummary({
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+    }),
+  });
+
+  const { data: transactionProjects } = useQuery({
+    queryKey: ['transaction-projects'],
+    queryFn: () => transactionService.getProjects(),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: transactionService.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-summary'] });
+      toast.success('Transaction deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete transaction');
+    },
+  });
+
+  const transactions = transactionsData?.data || [];
+  const meta = transactionsData?.meta || { total: 0, page: 1, totalPages: 1 };
+
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      MILESTONE_PAYMENT: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+      PROJECT_FEE: 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400',
+      PREFERRED_FEE: 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400',
+      HOURLY_FEE: 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
+      WITHDRAWAL: 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400',
+      CURRENCY_CONVERSION: 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+      LOCK: 'bg-gray-100 dark:bg-gray-500/10 text-gray-700 dark:text-gray-400',
+      UNLOCK: 'bg-gray-100 dark:bg-gray-500/10 text-gray-700 dark:text-gray-400',
+      MEMBERSHIP: 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400',
+      REFUND: 'bg-lime-100 dark:bg-lime-500/10 text-lime-700 dark:text-lime-400',
+    };
+    return colors[type] || 'bg-gray-100 text-gray-700';
+  };
+
+  const formatAmount = (amount: number, currency: string) => {
+    const prefix = amount >= 0 ? '+' : '';
+    const config = currencyConfig[currency] || { symbol: currency };
+    return `${prefix}${config.symbol}${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Calculate totals by currency for display
+  const earningsByCurrency = summary?.totalEarnings || {};
+  const feesByCurrency = summary?.totalFees || {};
+  const withdrawalsByCurrency = summary?.totalWithdrawals || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Multi-Currency Summary Cards */}
+      {summary && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Gross Earnings by Currency */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+                  <ArrowTrendingUpIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Gross Earnings</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Object.entries(earningsByCurrency).length === 0 ? (
+                  <p className="text-sm text-gray-500">No earnings yet</p>
+                ) : (
+                  Object.entries(earningsByCurrency)
+                    .filter(([_, amount]) => amount > 0)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([currency, amount]) => {
+                      const config = currencyConfig[currency] || { symbol: currency, color: 'gray' };
+                      return (
+                        <div key={currency} className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{currency}</span>
+                          <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                            {config.symbol}{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Platform Fees by Currency */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-red-50 dark:bg-red-500/10">
+                  <ArrowTrendingDownIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Platform Fees</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Object.entries(feesByCurrency).length === 0 ? (
+                  <p className="text-sm text-gray-500">No fees</p>
+                ) : (
+                  Object.entries(feesByCurrency)
+                    .filter(([_, amount]) => amount > 0)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([currency, amount]) => {
+                      const config = currencyConfig[currency] || { symbol: currency, color: 'gray' };
+                      return (
+                        <div key={currency} className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{currency}</span>
+                          <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                            -{config.symbol}{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Withdrawals by Currency */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-500/10">
+                  <BanknotesIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Withdrawals</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Object.entries(withdrawalsByCurrency).length === 0 ? (
+                  <p className="text-sm text-gray-500">No withdrawals</p>
+                ) : (
+                  Object.entries(withdrawalsByCurrency)
+                    .filter(([_, amount]) => amount > 0)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([currency, amount]) => {
+                      const config = currencyConfig[currency] || { symbol: currency, color: 'gray' };
+                      return (
+                        <div key={currency} className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{currency}</span>
+                          <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                            {config.symbol}{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Quick Stats Row */}
+      {summary && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Transactions</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{meta.total}</div>
+          </div>
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unique Projects</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{transactionProjects?.length || 0}</div>
+          </div>
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unique Clients</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{Object.keys(summary?.byClient || {}).length}</div>
+          </div>
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction Types</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{Object.keys(summary?.byType || {}).length}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Date Range Presets */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 mr-2">
+              <CalendarDaysIcon className="w-4 h-4 inline mr-1" />
+              Period:
+            </span>
+            {[
+              { id: 'all', label: 'All Time' },
+              { id: 'today', label: 'Today' },
+              { id: 'yesterday', label: 'Yesterday' },
+              { id: 'thisWeek', label: 'This Week' },
+              { id: 'thisMonth', label: 'This Month' },
+              { id: 'thisYear', label: 'This Year' },
+              { id: 'custom', label: 'Custom' },
+            ].map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => handleDatePresetChange(preset.id as DateRangePreset)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                  datePreset === preset.id
+                    ? 'bg-redstone-100 dark:bg-redstone-500/10 text-redstone-700 dark:text-redstone-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+
+            {datePreset === 'custom' && (
+              <div className="flex items-center gap-2 ml-4">
+                <input
+                  type="date"
+                  value={customDateRange.start}
+                  onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                  className="px-3 py-1.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
+                />
+                <span className="text-gray-400">to</span>
+                <input
+                  type="date"
+                  value={customDateRange.end}
+                  onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                  className="px-3 py-1.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
+                />
+                <Button size="sm" onClick={handleCustomDateApply}>Apply</Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filters & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search transactions..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
+              className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 w-64"
+            />
+          </div>
+          <select
+            value={filters.type}
+            onChange={(e) => setFilters({ ...filters, type: e.target.value, page: 1 })}
+            className="px-3 py-2 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+          >
+            <option value="">All Types</option>
+            <option value="MILESTONE_PAYMENT">Payments</option>
+            <option value="PROJECT_FEE">Project Fees</option>
+            <option value="PREFERRED_FEE">Preferred Fees</option>
+            <option value="HOURLY_FEE">Hourly Fees</option>
+            <option value="WITHDRAWAL">Withdrawals</option>
+            <option value="MEMBERSHIP">Membership</option>
+            <option value="REFUND">Refunds</option>
+          </select>
+          <select
+            value={filters.currency}
+            onChange={(e) => setFilters({ ...filters, currency: e.target.value, page: 1 })}
+            className="px-3 py-2 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+          >
+            <option value="">All Currencies</option>
+            <option value="USD">USD ($)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="PKR">PKR (Rs)</option>
+            <option value="AUD">AUD (A$)</option>
+            <option value="CAD">CAD (C$)</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Add Transaction
+          </Button>
+          <Button onClick={() => setShowImportModal(true)}>
+            <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
+            Import CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Transactions Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Transaction History</CardTitle>
+            <span className="text-sm text-gray-500">{meta.total} transactions</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : transactions.length === 0 ? (
+            <div className="text-center py-12">
+              <DocumentTextIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No transactions yet
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Import your Freelancer transaction history to get started
+              </p>
+              <Button onClick={() => setShowImportModal(true)}>
+                <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
+                Import CSV
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Type</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Project / Description</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Client</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((t: any) => (
+                    <tr
+                      key={t.id}
+                      className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    >
+                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                        {new Date(t.date).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={cn('px-2 py-1 rounded-md text-xs font-medium', getTypeColor(t.type))}>
+                          {t.type.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="max-w-xs">
+                          {t.projectName ? (
+                            <span className="font-medium text-gray-900 dark:text-white">{t.projectName}</span>
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400 text-xs truncate block">
+                              {t.description.substring(0, 60)}...
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+                        {t.clientName || '-'}
+                      </td>
+                      <td className={cn(
+                        'py-3 px-4 text-right font-medium whitespace-nowrap',
+                        t.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                      )}>
+                        {formatAmount(t.amount, t.currency)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingTransaction(t);
+                              setShowEditModal(true);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Delete this transaction?')) {
+                                deleteMutation.mutate(t.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-500 hover:text-red-600 dark:hover:text-red-400"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {meta.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <span className="text-sm text-gray-500">
+                Page {meta.page} of {meta.totalPages}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={meta.page <= 1}
+                  onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={meta.page >= meta.totalPages}
+                  onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Projects from Transactions */}
+      {transactionProjects && transactionProjects.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Projects from Transaction History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Project</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Client</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Total Earned</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Payments</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Period</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactionProjects.slice(0, 10).map((p: any, i: number) => (
+                    <tr key={i} className="border-b border-gray-100 dark:border-gray-700/50">
+                      <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                        {p.name}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+                        {p.client || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right font-medium text-emerald-600 dark:text-emerald-400">
+                        {p.currency} {p.totalEarned.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">
+                        {p.payments}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">
+                        {new Date(p.firstPayment).toLocaleDateString()} - {new Date(p.lastPayment).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportCSVModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['transaction-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['transaction-projects'] });
+            setShowImportModal(false);
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingTransaction && (
+        <EditTransactionModal
+          transaction={editingTransaction}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingTransaction(null);
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['transaction-summary'] });
+            setShowEditModal(false);
+            setEditingTransaction(null);
+          }}
+        />
+      )}
+
+      {/* Create Transaction Modal */}
+      {showCreateModal && (
+        <CreateTransactionModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['transaction-summary'] });
+            setShowCreateModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateTransactionModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    type: 'WITHDRAWAL',
+    description: '',
+    amount: '',
+    currency: 'PKR',
+    notes: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.description || !formData.amount) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // For withdrawals, amount should be negative
+      let amount = parseFloat(formData.amount);
+      if (formData.type === 'WITHDRAWAL' && amount > 0) {
+        amount = -amount;
+      }
+
+      await transactionService.create({
+        date: formData.date,
+        type: formData.type,
+        description: formData.description,
+        amount,
+        currency: formData.currency,
+        notes: formData.notes,
+      });
+      toast.success('Transaction created successfully');
+      onSuccess();
+    } catch (error) {
+      toast.error('Failed to create transaction');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
+              <PlusIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Add Transaction
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <XMarkIcon className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Date
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Type
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              >
+                <option value="WITHDRAWAL">Withdrawal</option>
+                <option value="MILESTONE_PAYMENT">Milestone Payment</option>
+                <option value="PROJECT_FEE">Project Fee</option>
+                <option value="PREFERRED_FEE">Preferred Fee</option>
+                <option value="HOURLY_FEE">Hourly Fee</option>
+                <option value="MEMBERSHIP">Membership</option>
+                <option value="REFUND">Refund</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Description *
+            </label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              placeholder="e.g., Express withdrawal via Payoneer"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Amount *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                placeholder="e.g., 500000"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Currency
+              </label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              >
+                <option value="PKR">PKR (Pakistani Rupee)</option>
+                <option value="USD">USD (US Dollar)</option>
+                <option value="GBP">GBP (British Pound)</option>
+                <option value="EUR">EUR (Euro)</option>
+                <option value="AUD">AUD (Australian Dollar)</option>
+                <option value="CAD">CAD (Canadian Dollar)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Notes
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none"
+              rows={2}
+              placeholder="Optional notes..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" isLoading={isSubmitting}>
+              Create Transaction
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ImportCSVModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [csvContent, setCSVContent] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCSVContent(event.target?.result as string);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!csvContent) {
+      toast.error('Please upload a CSV file');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const result = await transactionService.importCSV(csvContent);
+      toast.success(result.message);
+      onSuccess();
+    } catch (error) {
+      toast.error('Failed to import transactions');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
+              <ArrowUpTrayIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Import Transaction History
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <XMarkIcon className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Upload Freelancer CSV
+            </label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-redstone-50 file:text-redstone-700 hover:file:bg-redstone-100"
+            />
+          </div>
+
+          {csvContent && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg">
+              <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                File loaded. Ready to import.
+              </p>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500">
+            Export your transaction history from Freelancer.com and upload the CSV file here.
+            Duplicate transactions will be automatically skipped.
+          </p>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleImport} isLoading={isImporting} disabled={!csvContent}>
+              Import Transactions
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditTransactionModal({
+  transaction,
+  onClose,
+  onSuccess,
+}: {
+  transaction: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    projectName: transaction.projectName || '',
+    clientName: transaction.clientName || '',
+    notes: transaction.notes || '',
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => transactionService.update(transaction.id, data),
+    onSuccess: () => {
+      toast.success('Transaction updated');
+      onSuccess();
+    },
+    onError: () => {
+      toast.error('Failed to update transaction');
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMutation.mutate(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
+              <PencilIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Edit Transaction
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <XMarkIcon className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+            <p className="text-gray-600 dark:text-gray-400 mb-1">{transaction.description}</p>
+            <p className={cn(
+              'font-medium',
+              transaction.amount >= 0 ? 'text-emerald-600' : 'text-red-600'
+            )}>
+              {transaction.currency} {transaction.amount.toLocaleString()}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Project Name
+            </label>
+            <input
+              type="text"
+              value={formData.projectName}
+              onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              placeholder="Project name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Client Name
+            </label>
+            <input
+              type="text"
+              value={formData.clientName}
+              onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              placeholder="Client name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Notes
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none"
+              rows={3}
+              placeholder="Add notes..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" isLoading={updateMutation.isPending}>
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // Helper Components
 function SummaryCard({
   title,
@@ -1730,10 +2817,237 @@ function getStatusBadge(status: string): string {
 
 function getMilestoneStatusBadge(status: string): string {
   const badges: Record<string, string> = {
+    NOT_STARTED: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
     PENDING: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
     IN_PROGRESS: 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+    COMPLETED: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
     RELEASED: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
     CANCELLED: 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400',
   };
   return badges[status] || 'bg-gray-100 text-gray-700';
+}
+
+// ==================== SALARY RECORDS TAB ====================
+
+function SalaryRecordsTab() {
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+
+  const { data: payrollRecords, isLoading } = useQuery({
+    queryKey: ['salary-records', selectedMonth, selectedYear],
+    queryFn: () => payrollService.getPayrollList(selectedMonth, selectedYear),
+  });
+
+  // Get unique years for the dropdown (current year and last 2 years)
+  const years = Array.from({ length: 3 }, (_, i) => currentDate.getFullYear() - i);
+
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' },
+  ];
+
+  const paidRecords = payrollRecords?.filter((p: Payroll) => p.status === 'PAID') || [];
+  const totalPaid = paidRecords.reduce((sum: number, p: Payroll) => sum + Number(p.netSalary), 0);
+  const totalEmployeesPaid = paidRecords.length;
+
+  const formatCurrency = (amount: number) => {
+    return `Rs ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const getMonthName = (month: number) => {
+    return months.find(m => m.value === month)?.label || '';
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+              >
+                {months.map((month) => (
+                  <option key={month.value} value={month.value}>{month.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+              >
+                {years.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+                <BanknotesIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Paid</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalPaid)}</p>
+            <p className="text-sm text-gray-500 mt-1">{getMonthName(selectedMonth)} {selectedYear}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10">
+                <UserGroupIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Employees Paid</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalEmployeesPaid}</p>
+            <p className="text-sm text-gray-500 mt-1">of {payrollRecords?.length || 0} total</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-500/10">
+                <CalendarDaysIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Selected Period</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{getMonthName(selectedMonth)}</p>
+            <p className="text-sm text-gray-500 mt-1">{selectedYear}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Salary Records Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Paid Salaries - {getMonthName(selectedMonth)} {selectedYear}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-redstone-600 mx-auto"></div>
+              <p className="text-sm text-gray-500 mt-2">Loading salary records...</p>
+            </div>
+          ) : paidRecords.length === 0 ? (
+            <div className="text-center py-8">
+              <WalletIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">No salary payments recorded for {getMonthName(selectedMonth)} {selectedYear}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Employee</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Role</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Base Salary</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Deductions</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Net Salary</th>
+                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Present Days</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Paid On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paidRecords.map((record: Payroll) => (
+                    <tr key={record.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
+                            <span className="text-sm font-medium text-redstone-700 dark:text-redstone-400">
+                              {record.user?.firstName?.[0]}{record.user?.lastName?.[0]}
+                            </span>
+                          </div>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {record.user?.firstName} {record.user?.lastName}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {record.user?.role?.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-gray-900 dark:text-white">{formatCurrency(Number(record.baseSalary))}</span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-red-600 dark:text-red-400">
+                          {record.deductions ? `-${formatCurrency(Number(record.deductions))}` : '-'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(Number(record.netSalary))}</span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="text-gray-900 dark:text-white">
+                          {record.presentDays || 0}/{record.workingDays || 20}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(record.paidAt)}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 dark:bg-gray-800/50">
+                    <td colSpan={4} className="py-3 px-4 text-right font-semibold text-gray-700 dark:text-gray-300">
+                      Total Paid:
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">{formatCurrency(totalPaid)}</span>
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

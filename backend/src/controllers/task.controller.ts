@@ -76,7 +76,11 @@ export class TaskController {
 
   async getByProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const tasks = await taskService.getTasksByProject(req.params.projectId);
+      const tasks = await taskService.getTasksByProject(
+        req.params.projectId,
+        req.user!.userId,
+        req.user!.role
+      );
       sendSuccess(res, tasks);
     } catch (error) {
       next(error);

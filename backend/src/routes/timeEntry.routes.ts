@@ -56,7 +56,7 @@ router.get('/', timeEntryController.findAll.bind(timeEntryController));
  * /api/time-entries/active:
  *   get:
  *     tags: [Time Entries]
- *     summary: Get active timer
+ *     summary: Get active timer (legacy - single timer)
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -64,6 +64,20 @@ router.get('/', timeEntryController.findAll.bind(timeEntryController));
  *         description: Active timer or null
  */
 router.get('/active', timeEntryController.getActiveTimer.bind(timeEntryController));
+
+/**
+ * @swagger
+ * /api/time-entries/active-all:
+ *   get:
+ *     tags: [Time Entries]
+ *     summary: Get all active timers (supports multiple concurrent timers)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of active timers
+ */
+router.get('/active-all', timeEntryController.getActiveTimers.bind(timeEntryController));
 
 /**
  * @swagger
@@ -168,6 +182,34 @@ router.post('/start', timeEntryController.startTimer.bind(timeEntryController));
  *         description: Timer stopped
  */
 router.post('/stop', timeEntryController.stopTimer.bind(timeEntryController));
+
+/**
+ * @swagger
+ * /api/time-entries/stop/{taskId}:
+ *   post:
+ *     tags: [Time Entries]
+ *     summary: Stop timer for a specific task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Timer stopped
+ */
+router.post('/stop/:taskId', timeEntryController.stopTimerByTask.bind(timeEntryController));
 
 /**
  * @swagger

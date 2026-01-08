@@ -8,9 +8,12 @@ export interface CreateMilestoneData {
   currency?: string;
   status?: MilestoneStatus;
   dueDate?: string;
+  paymentStatus?: string;
 }
 
-export interface UpdateMilestoneData extends Partial<CreateMilestoneData> {}
+export interface UpdateMilestoneData extends Omit<Partial<CreateMilestoneData>, 'paymentStatus'> {
+  paymentStatus?: string | null;
+}
 
 export const milestoneService = {
   async getByProject(projectId: string): Promise<Milestone[]> {

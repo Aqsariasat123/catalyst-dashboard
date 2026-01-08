@@ -12,6 +12,7 @@ import {
   ClockIcon,
   FolderIcon,
   TrashIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { taskService, TaskFilters, CreateTaskData } from '@/services/task.service';
@@ -86,27 +87,28 @@ export default function TasksPage() {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', filters],
     queryFn: () => taskService.getAll(filters),
   });
 
-  const { data: activeTimer } = useQuery({
-    queryKey: ['activeTimer'],
-    queryFn: () => timeEntryService.getActiveTimer(),
+  const { data: activeTimers } = useQuery({
+    queryKey: ['activeTimers'],
+    queryFn: () => timeEntryService.getActiveTimers(),
   });
 
   const { data: projects } = useQuery({
     queryKey: ['projectsSimple'],
     queryFn: () => projectService.getAllSimple(),
-    enabled: showNewTaskModal,
+    enabled: showNewTaskModal || !!editingTask,
   });
 
   const { data: developers } = useQuery({
     queryKey: ['developers'],
     queryFn: () => userService.getDevelopers(),
-    enabled: showNewTaskModal,
+    enabled: showNewTaskModal || !!editingTask,
   });
 
   const createTaskMutation = useMutation({
@@ -125,10 +127,26 @@ export default function TasksPage() {
     },
   });
 
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => taskService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['developerDashboard'] });
+      setEditingTask(null);
+      setTaskForm(initialTaskForm);
+      toast.success('Task updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Failed to update task');
+    },
+  });
+
   const startTimerMutation = useMutation({
     mutationFn: (taskId: string) => timeEntryService.startTimer(taskId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activeTimer'] });
+      queryClient.invalidateQueries({ queryKey: ['activeTimers'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast.success('Timer started!');
     },
@@ -138,9 +156,9 @@ export default function TasksPage() {
   });
 
   const stopTimerMutation = useMutation({
-    mutationFn: () => timeEntryService.stopTimer(),
+    mutationFn: (taskId: string) => timeEntryService.stopTimerByTask(taskId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activeTimer'] });
+      queryClient.invalidateQueries({ queryKey: ['activeTimers'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast.success('Timer stopped!');
     },
@@ -194,6 +212,40 @@ export default function TasksPage() {
       status: taskForm.status,
       estimatedHours: taskForm.estimatedHours ? parseFloat(taskForm.estimatedHours) : undefined,
       dueDate: taskForm.dueDate || undefined,
+    });
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setTaskForm({
+      title: task.title,
+      description: task.description || '',
+      projectId: task.projectId || '',
+      assigneeId: task.assigneeId || '',
+      priority: task.priority,
+      status: task.status,
+      estimatedHours: task.estimatedHours?.toString() || '',
+      dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+    });
+  };
+
+  const handleUpdateTask = () => {
+    if (!editingTask || !taskForm.title.trim()) {
+      toast.error('Task title is required');
+      return;
+    }
+    updateTaskMutation.mutate({
+      id: editingTask.id,
+      data: {
+        title: taskForm.title,
+        description: taskForm.description || undefined,
+        projectId: taskForm.projectId || undefined,
+        assigneeId: taskForm.assigneeId || undefined,
+        priority: taskForm.priority,
+        status: taskForm.status,
+        estimatedHours: taskForm.estimatedHours ? parseFloat(taskForm.estimatedHours) : undefined,
+        dueDate: taskForm.dueDate || undefined,
+      },
     });
   };
 
@@ -307,10 +359,11 @@ export default function TasksPage() {
               <TaskRow
                 key={task.id}
                 task={task}
-                activeTimer={activeTimer}
+                activeTimers={activeTimers || []}
                 onStartTimer={() => startTimerMutation.mutate(task.id)}
-                onStopTimer={() => stopTimerMutation.mutate()}
+                onStopTimer={() => stopTimerMutation.mutate(task.id)}
                 onStatusChange={(status) => updateStatusMutation.mutate({ id: task.id, status })}
+                onEdit={() => handleEditTask(task)}
                 onDelete={(id, title) => setDeleteConfirm({ id, title })}
                 isTimerLoading={startTimerMutation.isPending || stopTimerMutation.isPending}
                 isAdmin={isAdmin}
@@ -592,16 +645,215 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
+              onClick={() => {
+                setEditingTask(null);
+                setTaskForm(initialTaskForm);
+              }}
+            />
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center">
+                      <PencilIcon className="w-4 h-4 text-redstone-600 dark:text-redstone-400" />
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                      Edit Task
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingTask(null);
+                      setTaskForm(initialTaskForm);
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+                {/* Task Title */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Task Title <span className="text-redstone-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Design homepage mockup"
+                    value={taskForm.title}
+                    onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                  />
+                </div>
+
+                {/* Project */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Project
+                  </label>
+                  <select
+                    value={taskForm.projectId}
+                    onChange={(e) => setTaskForm({ ...taskForm, projectId: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                  >
+                    <option value="">Select project...</option>
+                    {projects?.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Assignee */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Assignee
+                  </label>
+                  <select
+                    value={taskForm.assigneeId}
+                    onChange={(e) => setTaskForm({ ...taskForm, assigneeId: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                  >
+                    <option value="">Unassigned</option>
+                    {developers?.map((dev) => (
+                      <option key={dev.id} value={dev.id}>
+                        {dev.firstName} {dev.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Priority & Status Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Priority
+                    </label>
+                    <select
+                      value={taskForm.priority}
+                      onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as TaskPriority })}
+                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                    >
+                      {priorityOptionsForForm.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Status
+                    </label>
+                    <select
+                      value={taskForm.status}
+                      onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value as TaskStatus })}
+                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                    >
+                      {statusOptionsForForm.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Hours & Due Date Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Estimated Hours
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={taskForm.estimatedHours}
+                      onChange={(e) => setTaskForm({ ...taskForm, estimatedHours: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                      Due Date
+                    </label>
+                    <input
+                      type="date"
+                      value={taskForm.dueDate}
+                      onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    placeholder="Brief task description..."
+                    value={taskForm.description}
+                    onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black flex items-center justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setEditingTask(null);
+                    setTaskForm(initialTaskForm);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateTask}
+                  disabled={updateTaskMutation.isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-redstone-600 hover:bg-redstone-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {updateTaskMutation.isPending ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <PencilIcon className="w-4 h-4" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 interface TaskRowProps {
   task: Task;
-  activeTimer: ActiveTimer | null | undefined;
+  activeTimers: ActiveTimer[];
   onStartTimer: () => void;
   onStopTimer: () => void;
   onStatusChange: (status: TaskStatus) => void;
+  onEdit: () => void;
   onDelete: (id: string, title: string) => void;
   isTimerLoading: boolean;
   isAdmin: boolean;
@@ -609,16 +861,17 @@ interface TaskRowProps {
 
 function TaskRow({
   task,
-  activeTimer,
+  activeTimers,
   onStartTimer,
   onStopTimer,
+  onEdit,
   onStatusChange,
   onDelete,
   isTimerLoading,
   isAdmin,
 }: TaskRowProps) {
-  const isTimerActive = activeTimer?.taskId === task.id;
-  const hasOtherActiveTimer = !!activeTimer && !isTimerActive;
+  // Check if THIS task has an active timer
+  const isTimerActive = activeTimers.some(timer => timer.taskId === task.id);
 
   const statusConfig: Record<string, { bg: string; text: string; dot: string }> = {
     TODO: { bg: 'bg-gray-50 dark:bg-gray-500/10', text: 'text-gray-700 dark:text-gray-400', dot: 'bg-gray-500' },
@@ -646,7 +899,7 @@ function TaskRow({
       {/* Desktop Row */}
       <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center">
         {/* Task Info */}
-        <div className="col-span-4 flex items-center gap-3 min-w-0">
+        <Link to={`/tasks/${task.id}`} className="col-span-4 flex items-center gap-3 min-w-0 group">
           <div className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
             isTimerActive
@@ -660,7 +913,7 @@ function TaskRow({
             )}
           </div>
           <div className="min-w-0">
-            <h3 className="font-medium text-gray-900 dark:text-white truncate">
+            <h3 className="font-medium text-gray-900 dark:text-white truncate group-hover:text-redstone-600 dark:group-hover:text-redstone-400 transition-colors">
               {task.title}
             </h3>
             {task.assignee && (
@@ -677,7 +930,7 @@ function TaskRow({
               </div>
             )}
           </div>
-        </div>
+        </Link>
 
         {/* Project */}
         <div className="col-span-2 min-w-0">
@@ -748,8 +1001,8 @@ function TaskRow({
           {task.status !== 'COMPLETED' && (
             <button
               onClick={isTimerActive ? onStopTimer : onStartTimer}
-              disabled={isTimerLoading || hasOtherActiveTimer}
-              title={isTimerActive ? 'Stop timer' : hasOtherActiveTimer ? 'Stop other timer first' : 'Start timer'}
+              disabled={isTimerLoading}
+              title={isTimerActive ? 'Stop timer' : 'Start timer'}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 isTimerActive
@@ -772,6 +1025,15 @@ function TaskRow({
           )}
           {isAdmin && (
             <button
+              onClick={onEdit}
+              title="Edit task"
+              className="p-2 text-redstone-600 dark:text-redstone-400 hover:bg-redstone-100 dark:hover:bg-redstone-500/20 rounded-lg transition-colors"
+            >
+              <PencilIcon className="w-4 h-4" />
+            </button>
+          )}
+          {isAdmin && (
+            <button
               onClick={() => onDelete(task.id, task.title)}
               title="Delete task"
               className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors"
@@ -785,7 +1047,7 @@ function TaskRow({
       {/* Mobile Card */}
       <div className="md:hidden px-4 py-4">
         <div className="flex items-start gap-3">
-          <div className={cn(
+          <Link to={`/tasks/${task.id}`} className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
             isTimerActive
               ? "bg-redstone-100 dark:bg-redstone-500/10"
@@ -796,12 +1058,12 @@ function TaskRow({
             ) : (
               <ClipboardDocumentListIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
             )}
-          </div>
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-gray-900 dark:text-white truncate">
+              <Link to={`/tasks/${task.id}`} className="font-medium text-gray-900 dark:text-white truncate hover:text-redstone-600 dark:hover:text-redstone-400 transition-colors">
                 {task.title}
-              </h3>
+              </Link>
               <span className={cn(
                 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 whitespace-nowrap',
                 status.bg, status.text
@@ -840,7 +1102,7 @@ function TaskRow({
           {task.status !== 'COMPLETED' && (
             <button
               onClick={isTimerActive ? onStopTimer : onStartTimer}
-              disabled={isTimerLoading || hasOtherActiveTimer}
+              disabled={isTimerLoading}
               className={cn(
                 'flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50',
                 isTimerActive
@@ -859,6 +1121,14 @@ function TaskRow({
                   <span>Start</span>
                 </>
               )}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={onEdit}
+              className="p-1.5 text-redstone-600 dark:text-redstone-400 hover:bg-redstone-100 dark:hover:bg-redstone-500/20 rounded-lg transition-colors"
+            >
+              <PencilIcon className="w-4 h-4" />
             </button>
           )}
           {isAdmin && (

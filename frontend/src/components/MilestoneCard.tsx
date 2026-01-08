@@ -69,6 +69,40 @@ function getProgressBarColor(status: MilestoneStatus): string {
   }
 }
 
+function getPaymentStatusColor(status: string): string {
+  switch (status) {
+    case 'PENDING':
+      return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400';
+    case 'IN_PROGRESS':
+      return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-400';
+    case 'RELEASED':
+      return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400';
+    case 'DELAYED':
+      return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400';
+    case 'CANCELLED':
+      return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400';
+    default:
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+  }
+}
+
+function getPaymentStatusLabel(status: string): string {
+  switch (status) {
+    case 'PENDING':
+      return 'Payment Pending';
+    case 'IN_PROGRESS':
+      return 'Payment In Progress';
+    case 'RELEASED':
+      return 'Released';
+    case 'DELAYED':
+      return 'Payment Delayed';
+    case 'CANCELLED':
+      return 'Payment Cancelled';
+    default:
+      return status;
+  }
+}
+
 function getPriorityColor(priority: string): string {
   switch (priority) {
     case 'URGENT':
@@ -93,13 +127,13 @@ function formatDuration(seconds: number): string {
 interface MilestoneCardProps {
   milestone: Milestone;
   index: number;
-  activeTimer: ActiveTimer | null | undefined;
+  activeTimers: ActiveTimer[];
   onEdit: () => void;
   onDelete: () => void;
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
   onStartTimer: (taskId: string) => void;
-  onStopTimer: () => void;
+  onStopTimer: (taskId: string) => void;
   onUpdateTaskStatus: (taskId: string, status: TaskStatus) => void;
   onDeleteTask: (taskId: string, title: string) => void;
   isTimerLoading: boolean;
@@ -108,7 +142,7 @@ interface MilestoneCardProps {
 export default function MilestoneCard({
   milestone,
   index,
-  activeTimer,
+  activeTimers,
   onEdit,
   onDelete,
   onAddTask,
@@ -134,13 +168,23 @@ export default function MilestoneCard({
 
           {/* Milestone Title and Status */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
                 {milestone.title}
               </h3>
               <Badge className={getMilestoneStatusColor(milestone.status)} size="sm">
                 {getMilestoneStatusLabel(milestone.status)}
               </Badge>
+              {(milestone as any).amount && (
+                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400" size="sm">
+                  ${Number((milestone as any).amount).toLocaleString()}
+                </Badge>
+              )}
+              {(milestone as any).paymentStatus && (
+                <Badge className={getPaymentStatusColor((milestone as any).paymentStatus)} size="sm">
+                  {getPaymentStatusLabel((milestone as any).paymentStatus)}
+                </Badge>
+              )}
             </div>
             {milestone.description && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
@@ -235,10 +279,10 @@ export default function MilestoneCard({
               <MilestoneTaskCard
                 key={task.id}
                 task={task}
-                activeTimer={activeTimer}
+                activeTimers={activeTimers}
                 onEdit={() => onEditTask(task)}
                 onStartTimer={() => onStartTimer(task.id)}
-                onStopTimer={onStopTimer}
+                onStopTimer={() => onStopTimer(task.id)}
                 onUpdateStatus={(status) => onUpdateTaskStatus(task.id, status)}
                 onDelete={() => onDeleteTask(task.id, task.title)}
                 isTimerLoading={isTimerLoading}
@@ -268,7 +312,7 @@ export default function MilestoneCard({
 
 interface MilestoneTaskCardProps {
   task: Task;
-  activeTimer: ActiveTimer | null | undefined;
+  activeTimers: ActiveTimer[];
   onEdit: () => void;
   onStartTimer: () => void;
   onStopTimer: () => void;
@@ -279,7 +323,7 @@ interface MilestoneTaskCardProps {
 
 function MilestoneTaskCard({
   task,
-  activeTimer,
+  activeTimers,
   onEdit,
   onStartTimer,
   onStopTimer,
@@ -287,7 +331,8 @@ function MilestoneTaskCard({
   onDelete,
   isTimerLoading,
 }: MilestoneTaskCardProps) {
-  const isTimerActive = activeTimer?.taskId === task.id;
+  // Check if THIS task has an active timer
+  const isTimerActive = activeTimers.some(timer => timer.taskId === task.id);
 
   return (
     <div className="p-4 bg-white dark:bg-black rounded-lg border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
@@ -363,7 +408,7 @@ function MilestoneTaskCard({
             {/* Timer button */}
             <button
               onClick={isTimerActive ? onStopTimer : onStartTimer}
-              disabled={isTimerLoading || (!!activeTimer && !isTimerActive)}
+              disabled={isTimerLoading}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 isTimerActive
                   ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30'

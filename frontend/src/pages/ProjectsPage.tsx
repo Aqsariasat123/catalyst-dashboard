@@ -10,13 +10,13 @@ import {
   UserGroupIcon,
   XMarkIcon,
   ChevronRightIcon,
-  BuildingOffice2Icon,
   TrashIcon,
   PencilSquareIcon,
   PencilIcon,
 } from '@heroicons/react/24/outline';
 import { projectService, ProjectFilters, CreateProjectData } from '@/services/project.service';
 import { clientService } from '@/services/client.service';
+import { userService } from '@/services/user.service';
 import { useAuthStore } from '@/stores/authStore';
 import { Project, ProjectStatus } from '@/types';
 import Button from '@/components/ui/Button';
@@ -48,7 +48,16 @@ const initialProjectForm = {
   endDate: '',
   budget: '',
   currency: 'USD',
+  projectLeadId: '',
+  platformFeePercent: '',
+  exchangeRate: '280',
 };
+
+interface TeamMemberForm {
+  userId: string;
+  role: string;
+  userName?: string;
+}
 
 export default function ProjectsPage() {
   const { user } = useAuthStore();
@@ -67,6 +76,13 @@ export default function ProjectsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [editForm, setEditForm] = useState(initialProjectForm);
+  const [teamProject, setTeamProject] = useState<Project | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedRole, setSelectedRole] = useState('Developer');
+  const [newProjectTeam, setNewProjectTeam] = useState<TeamMemberForm[]>([]);
+  const [editProjectTeam, setEditProjectTeam] = useState<TeamMemberForm[]>([]);
+  const [tempUserId, setTempUserId] = useState('');
+  const [tempRole, setTempRole] = useState('Developer');
 
   const { data, isLoading } = useQuery({
     queryKey: ['projects', filters],
@@ -79,13 +95,36 @@ export default function ProjectsPage() {
     enabled: showNewProjectModal || !!editProject,
   });
 
+  const { data: allUsers } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => userService.getAll({ limit: 100 }),
+    enabled: !!teamProject || showNewProjectModal || !!editProject,
+  });
+
   const createProjectMutation = useMutation({
     mutationFn: (data: CreateProjectData) => projectService.create(data),
-    onSuccess: () => {
+    onSuccess: async (newProject) => {
+      // Add project lead if selected
+      if (projectForm.projectLeadId) {
+        try {
+          await projectService.addMember(newProject.id, projectForm.projectLeadId, 'Project Lead');
+        } catch (e) {
+          console.error('Failed to add project lead:', e);
+        }
+      }
+      // Add team members to the new project
+      for (const member of newProjectTeam) {
+        try {
+          await projectService.addMember(newProject.id, member.userId, member.role);
+        } catch (e) {
+          console.error('Failed to add team member:', e);
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
       setShowNewProjectModal(false);
       setProjectForm(initialProjectForm);
+      setNewProjectTeam([]);
       toast.success('Project created successfully');
     },
     onError: (error: any) => {
@@ -117,12 +156,70 @@ export default function ProjectsPage() {
   };
 
   const updateProjectMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateProjectData> }) =>
-      projectService.update(id, data),
+    mutationFn: async ({ id, data, originalMembers, newMembers, originalLeadId, newLeadId }: {
+      id: string;
+      data: Partial<CreateProjectData>;
+      originalMembers: TeamMemberForm[];
+      newMembers: TeamMemberForm[];
+      originalLeadId?: string;
+      newLeadId?: string;
+    }) => {
+      // Update project data
+      await projectService.update(id, data);
+
+      // Handle project lead change
+      if (originalLeadId !== newLeadId) {
+        // Remove old lead
+        if (originalLeadId) {
+          try {
+            await projectService.removeMember(id, originalLeadId);
+          } catch (e) {
+            console.error('Failed to remove old lead:', e);
+          }
+        }
+        // Add new lead
+        if (newLeadId) {
+          try {
+            await projectService.addMember(id, newLeadId, 'Project Lead');
+          } catch (e) {
+            console.error('Failed to add new lead:', e);
+          }
+        }
+      }
+
+      // Find members to remove (in original but not in new)
+      const membersToRemove = originalMembers.filter(
+        om => !newMembers.some(nm => nm.userId === om.userId)
+      );
+
+      // Find members to add (in new but not in original)
+      const membersToAdd = newMembers.filter(
+        nm => !originalMembers.some(om => om.userId === nm.userId)
+      );
+
+      // Remove old members
+      for (const member of membersToRemove) {
+        try {
+          await projectService.removeMember(id, member.userId);
+        } catch (e) {
+          console.error('Failed to remove member:', e);
+        }
+      }
+
+      // Add new members
+      for (const member of membersToAdd) {
+        try {
+          await projectService.addMember(id, member.userId, member.role);
+        } catch (e) {
+          console.error('Failed to add member:', e);
+        }
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
       setEditProject(null);
+      setEditProjectTeam([]);
       toast.success('Project updated successfully');
     },
     onError: (error: any) => {
@@ -130,8 +227,37 @@ export default function ProjectsPage() {
     },
   });
 
+  const addMemberMutation = useMutation({
+    mutationFn: ({ projectId, userId, role }: { projectId: string; userId: string; role: string }) =>
+      projectService.addMember(projectId, userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setSelectedUserId('');
+      setSelectedRole('Developer');
+      toast.success('Team member added successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to add team member');
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: ({ projectId, userId }: { projectId: string; userId: string }) =>
+      projectService.removeMember(projectId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Team member removed successfully');
+    },
+    onError: () => {
+      toast.error('Failed to remove team member');
+    },
+  });
+
   const handleEditProject = (project: Project) => {
     setEditProject(project);
+    // Find project lead from members
+    const projectLead = project.members?.find(m => m.role === 'Project Lead');
+    const leadId = projectLead?.userId || projectLead?.user?.id || '';
     setEditForm({
       name: project.name,
       description: project.description || '',
@@ -141,8 +267,26 @@ export default function ProjectsPage() {
       endDate: project.endDate ? project.endDate.split('T')[0] : '',
       budget: project.budget?.toString() || '',
       currency: project.currency || 'USD',
+      projectLeadId: leadId,
+      platformFeePercent: (project as any).platformFeePercent?.toString() || '',
+      exchangeRate: (project as any).exchangeRate?.toString() || '280',
     });
+    setOriginalLeadId(leadId);
+    // Load existing team members (excluding project lead)
+    const existingTeam = project.members
+      ?.filter(m => m.role !== 'Project Lead')
+      .map(m => ({
+        userId: m.userId || m.user?.id || '',
+        role: m.role,
+        userName: m.user ? `${m.user.firstName} ${m.user.lastName}` : '',
+      })) || [];
+    setEditProjectTeam(existingTeam);
+    setOriginalEditTeam(existingTeam);
   };
+
+  // Store original team for comparison when updating
+  const [originalEditTeam, setOriginalEditTeam] = useState<TeamMemberForm[]>([]);
+  const [originalLeadId, setOriginalLeadId] = useState<string>('');
 
   const handleUpdateProject = () => {
     if (!editProject) return;
@@ -161,7 +305,13 @@ export default function ProjectsPage() {
         endDate: editForm.endDate || undefined,
         budget: editForm.budget ? parseFloat(editForm.budget) : undefined,
         currency: editForm.currency,
-      },
+        platformFeePercent: editForm.platformFeePercent ? parseFloat(editForm.platformFeePercent) : undefined,
+        exchangeRate: editForm.exchangeRate ? parseFloat(editForm.exchangeRate) : undefined,
+      } as any,
+      originalMembers: originalEditTeam,
+      newMembers: editProjectTeam,
+      originalLeadId: originalLeadId,
+      newLeadId: editForm.projectLeadId,
     });
   };
 
@@ -183,7 +333,9 @@ export default function ProjectsPage() {
       endDate: projectForm.endDate || undefined,
       budget: projectForm.budget ? parseFloat(projectForm.budget) : undefined,
       currency: projectForm.currency,
-    });
+      platformFeePercent: projectForm.platformFeePercent ? parseFloat(projectForm.platformFeePercent) : undefined,
+      exchangeRate: projectForm.exchangeRate ? parseFloat(projectForm.exchangeRate) : undefined,
+    } as any);
   };
 
   // Calculate stats
@@ -249,9 +401,10 @@ export default function ProjectsPage() {
         {/* Table Header */}
         <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           <div className="col-span-3">Project</div>
-          <div className="col-span-2">Client</div>
+          <div className="col-span-1">Client</div>
           <div className="col-span-1">Status</div>
           <div className="col-span-2">Timeline</div>
+          <div className="col-span-1">Lead</div>
           <div className="col-span-2">Team</div>
           <div className="col-span-1 text-center">Tasks</div>
           <div className="col-span-1 text-right">Actions</div>
@@ -291,6 +444,7 @@ export default function ProjectsPage() {
                 isAdmin={isAdmin}
                 onDelete={handleDeleteProject}
                 onEdit={handleEditProject}
+                onManageTeam={setTeamProject}
               />
             ))}
           </div>
@@ -386,6 +540,25 @@ export default function ProjectsPage() {
                   </select>
                 </div>
 
+                {/* Project Lead */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Project Lead <span className="text-gray-400 font-normal normal-case">(Assigned To)</span>
+                  </label>
+                  <select
+                    value={projectForm.projectLeadId}
+                    onChange={(e) => setProjectForm({ ...projectForm, projectLeadId: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                  >
+                    <option value="">Select project lead...</option>
+                    {allUsers?.data?.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Status & Dates Row */}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
@@ -430,7 +603,7 @@ export default function ProjectsPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                      Budget
+                      Project Cost (USD)
                     </label>
                     <input
                       type="number"
@@ -442,22 +615,77 @@ export default function ProjectsPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                      Currency
+                      Platform Fee %
                     </label>
-                    <select
-                      value={projectForm.currency}
-                      onChange={(e) => setProjectForm({ ...projectForm, currency: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
-                    >
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                      <option value="PKR">PKR</option>
-                      <option value="AUD">AUD</option>
-                      <option value="CAD">CAD</option>
-                    </select>
+                    <input
+                      type="number"
+                      placeholder="10"
+                      step="0.1"
+                      value={projectForm.platformFeePercent}
+                      onChange={(e) => setProjectForm({ ...projectForm, platformFeePercent: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                    />
                   </div>
                 </div>
+
+                {/* Exchange Rate */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Exchange Rate (1 USD = PKR)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="280"
+                    step="0.01"
+                    value={projectForm.exchangeRate}
+                    onChange={(e) => setProjectForm({ ...projectForm, exchangeRate: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                  />
+                </div>
+
+                {/* Financial Summary */}
+                {projectForm.budget && (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
+                    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Financial Summary
+                    </h4>
+                    {(() => {
+                      const cost = parseFloat(projectForm.budget) || 0;
+                      const feePercent = parseFloat(projectForm.platformFeePercent) || 0;
+                      const rate = parseFloat(projectForm.exchangeRate) || 280;
+                      const fee = cost * (feePercent / 100);
+                      const net = cost - fee;
+                      return (
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Gross (USD)</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">${cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Gross (PKR)</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">Rs {(cost * rate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Platform Fee ({feePercent}%)</p>
+                            <p className="font-semibold text-red-600 dark:text-red-400">-${fee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Fee (PKR)</p>
+                            <p className="font-semibold text-red-600 dark:text-red-400">-Rs {(fee * rate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          </div>
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                            <p className="text-gray-500 dark:text-gray-400">Net (USD)</p>
+                            <p className="font-bold text-green-600 dark:text-green-400">${net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                            <p className="text-gray-500 dark:text-gray-400">Net (PKR)</p>
+                            <p className="font-bold text-green-600 dark:text-green-400">Rs {(net * rate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>
@@ -472,6 +700,85 @@ export default function ProjectsPage() {
                     className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all resize-none"
                   />
                 </div>
+
+                {/* Team Members */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Team Members
+                  </label>
+                  <div className="space-y-3">
+                    {/* Add member row */}
+                    <div className="flex gap-2">
+                      <select
+                        value={tempUserId}
+                        onChange={(e) => setTempUserId(e.target.value)}
+                        className="flex-1 px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                      >
+                        <option value="">Select member...</option>
+                        {allUsers?.data
+                          ?.filter(u => !newProjectTeam.some(m => m.userId === u.id))
+                          .map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.firstName} {u.lastName}
+                            </option>
+                          ))}
+                      </select>
+                      <select
+                        value={tempRole}
+                        onChange={(e) => setTempRole(e.target.value)}
+                        className="w-32 px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                      >
+                        <option value="Developer">Developer</option>
+                        <option value="Designer">Designer</option>
+                        <option value="QC">QC</option>
+                        <option value="Project Manager">PM</option>
+                        <option value="Operational Manager">OM</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tempUserId) {
+                            const user = allUsers?.data?.find(u => u.id === tempUserId);
+                            setNewProjectTeam([...newProjectTeam, {
+                              userId: tempUserId,
+                              role: tempRole,
+                              userName: user ? `${user.firstName} ${user.lastName}` : ''
+                            }]);
+                            setTempUserId('');
+                            setTempRole('Developer');
+                          }
+                        }}
+                        disabled={!tempUserId}
+                        className="px-3 py-2 bg-redstone-600 text-white rounded-lg text-sm font-medium hover:bg-redstone-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <PlusIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Team list */}
+                    {newProjectTeam.length > 0 && (
+                      <div className="space-y-2">
+                        {newProjectTeam.map((member, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-900 dark:text-white">{member.userName}</span>
+                              <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400">
+                                {member.role}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setNewProjectTeam(newProjectTeam.filter((_, i) => i !== idx))}
+                              className="p-1 text-gray-400 hover:text-red-500"
+                            >
+                              <XMarkIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Modal Footer */}
@@ -480,6 +787,7 @@ export default function ProjectsPage() {
                   onClick={() => {
                     setShowNewProjectModal(false);
                     setProjectForm(initialProjectForm);
+                    setNewProjectTeam([]);
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
@@ -641,6 +949,25 @@ export default function ProjectsPage() {
                   </select>
                 </div>
 
+                {/* Project Lead */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Project Lead <span className="text-gray-400 font-normal normal-case">(Assigned To)</span>
+                  </label>
+                  <select
+                    value={editForm.projectLeadId}
+                    onChange={(e) => setEditForm({ ...editForm, projectLeadId: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
+                  >
+                    <option value="">Select project lead...</option>
+                    {allUsers?.data?.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Status & Dates Row */}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
@@ -685,7 +1012,7 @@ export default function ProjectsPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                      Budget
+                      Project Cost (USD)
                     </label>
                     <input
                       type="number"
@@ -697,22 +1024,77 @@ export default function ProjectsPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                      Currency
+                      Platform Fee %
                     </label>
-                    <select
-                      value={editForm.currency}
-                      onChange={(e) => setEditForm({ ...editForm, currency: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all cursor-pointer"
-                    >
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                      <option value="PKR">PKR</option>
-                      <option value="AUD">AUD</option>
-                      <option value="CAD">CAD</option>
-                    </select>
+                    <input
+                      type="number"
+                      placeholder="10"
+                      step="0.1"
+                      value={editForm.platformFeePercent}
+                      onChange={(e) => setEditForm({ ...editForm, platformFeePercent: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                    />
                   </div>
                 </div>
+
+                {/* Exchange Rate */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Exchange Rate (1 USD = PKR)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="280"
+                    step="0.01"
+                    value={editForm.exchangeRate}
+                    onChange={(e) => setEditForm({ ...editForm, exchangeRate: e.target.value })}
+                    className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
+                  />
+                </div>
+
+                {/* Financial Summary */}
+                {editForm.budget && (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
+                    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Financial Summary
+                    </h4>
+                    {(() => {
+                      const cost = parseFloat(editForm.budget) || 0;
+                      const feePercent = parseFloat(editForm.platformFeePercent) || 0;
+                      const rate = parseFloat(editForm.exchangeRate) || 280;
+                      const fee = cost * (feePercent / 100);
+                      const net = cost - fee;
+                      return (
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Gross (USD)</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">${cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Gross (PKR)</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">Rs {(cost * rate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Platform Fee ({feePercent}%)</p>
+                            <p className="font-semibold text-red-600 dark:text-red-400">-${fee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Fee (PKR)</p>
+                            <p className="font-semibold text-red-600 dark:text-red-400">-Rs {(fee * rate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          </div>
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                            <p className="text-gray-500 dark:text-gray-400">Net (USD)</p>
+                            <p className="font-bold text-green-600 dark:text-green-400">${net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                            <p className="text-gray-500 dark:text-gray-400">Net (PKR)</p>
+                            <p className="font-bold text-green-600 dark:text-green-400">Rs {(net * rate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>
@@ -727,12 +1109,94 @@ export default function ProjectsPage() {
                     className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all resize-none"
                   />
                 </div>
+
+                {/* Team Members */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                    Team Members
+                  </label>
+                  <div className="space-y-3">
+                    {/* Add member row */}
+                    <div className="flex gap-2">
+                      <select
+                        value={tempUserId}
+                        onChange={(e) => setTempUserId(e.target.value)}
+                        className="flex-1 px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                      >
+                        <option value="">Select member...</option>
+                        {allUsers?.data
+                          ?.filter(u => !editProjectTeam.some(m => m.userId === u.id))
+                          .map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.firstName} {u.lastName}
+                            </option>
+                          ))}
+                      </select>
+                      <select
+                        value={tempRole}
+                        onChange={(e) => setTempRole(e.target.value)}
+                        className="w-32 px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                      >
+                        <option value="Developer">Developer</option>
+                        <option value="Designer">Designer</option>
+                        <option value="QC">QC</option>
+                        <option value="Project Manager">PM</option>
+                        <option value="Operational Manager">OM</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tempUserId) {
+                            const user = allUsers?.data?.find(u => u.id === tempUserId);
+                            setEditProjectTeam([...editProjectTeam, {
+                              userId: tempUserId,
+                              role: tempRole,
+                              userName: user ? `${user.firstName} ${user.lastName}` : ''
+                            }]);
+                            setTempUserId('');
+                            setTempRole('Developer');
+                          }
+                        }}
+                        disabled={!tempUserId}
+                        className="px-3 py-2 bg-redstone-600 text-white rounded-lg text-sm font-medium hover:bg-redstone-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <PlusIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Team list */}
+                    {editProjectTeam.length > 0 && (
+                      <div className="space-y-2">
+                        {editProjectTeam.map((member, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-900 dark:text-white">{member.userName}</span>
+                              <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400">
+                                {member.role}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditProjectTeam(editProjectTeam.filter((_, i) => i !== idx))}
+                              className="p-1 text-gray-400 hover:text-red-500"
+                            >
+                              <XMarkIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Modal Footer */}
               <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black flex items-center justify-end gap-2">
                 <button
-                  onClick={() => setEditProject(null)}
+                  onClick={() => {
+                    setEditProject(null);
+                    setEditProjectTeam([]);
+                  }}
                   className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   Cancel
@@ -762,6 +1226,156 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
+
+      {/* Team Management Modal */}
+      {teamProject && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
+              onClick={() => setTeamProject(null)}
+            />
+            <div className="relative bg-white dark:bg-black rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-redstone-100 dark:bg-redstone-500/20 flex items-center justify-center">
+                      <UserGroupIcon className="w-5 h-5 text-redstone-600 dark:text-redstone-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Manage Team
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {teamProject.name}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setTeamProject(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <XMarkIcon className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
+                {/* Add New Member */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Add Team Member
+                  </h4>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-redstone-500 focus:border-redstone-500"
+                    >
+                      <option value="">Select a team member...</option>
+                      {allUsers?.data
+                        ?.filter(
+                          (u) =>
+                            !teamProject?.members?.some((m) => m.userId === u.id)
+                        )
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.firstName} {u.lastName} ({u.role})
+                          </option>
+                        ))}
+                    </select>
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                      className="sm:w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-redstone-500 focus:border-redstone-500"
+                    >
+                      <option value="Developer">Developer</option>
+                      <option value="Designer">Designer</option>
+                      <option value="QC">QC</option>
+                      <option value="Project Manager">Project Manager</option>
+                      <option value="Operational Manager">Operational Manager</option>
+                    </select>
+                    <Button
+                      onClick={() => {
+                        if (selectedUserId && teamProject) {
+                          addMemberMutation.mutate({
+                            projectId: teamProject.id,
+                            userId: selectedUserId,
+                            role: selectedRole
+                          });
+                        }
+                      }}
+                      disabled={!selectedUserId || addMemberMutation.isPending}
+                      size="sm"
+                    >
+                      {addMemberMutation.isPending ? 'Adding...' : 'Add'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Current Members */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Current Members ({teamProject?.members?.length || 0})
+                  </h4>
+                  {teamProject?.members && teamProject.members.length > 0 ? (
+                    <div className="space-y-2">
+                      {teamProject.members.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar
+                              firstName={member.user?.firstName || ''}
+                              lastName={member.user?.lastName || ''}
+                              avatar={member.user?.avatar}
+                              size="sm"
+                            />
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white text-sm">
+                                {member.user?.firstName} {member.user?.lastName}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {member.role}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (member.userId && teamProject) {
+                                removeMemberMutation.mutate({
+                                  projectId: teamProject.id,
+                                  userId: member.userId
+                                });
+                              }
+                            }}
+                            disabled={removeMemberMutation.isPending}
+                            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                            title="Remove member"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                      No team members assigned yet
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black flex justify-end">
+                <Button variant="outline" onClick={() => setTeamProject(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -771,9 +1385,10 @@ interface ProjectRowProps {
   isAdmin: boolean;
   onDelete: (id: string, name: string) => void;
   onEdit: (project: Project) => void;
+  onManageTeam: (project: Project) => void;
 }
 
-function ProjectRow({ project, isAdmin, onDelete, onEdit }: ProjectRowProps) {
+function ProjectRow({ project, isAdmin, onDelete, onEdit, onManageTeam }: ProjectRowProps) {
   const statusConfig: Record<string, { bg: string; text: string; dot: string }> = {
     PLANNING: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
     IN_PROGRESS: { bg: 'bg-cyan-50 dark:bg-cyan-500/10', text: 'text-cyan-700 dark:text-cyan-400', dot: 'bg-cyan-500' },
@@ -806,14 +1421,11 @@ function ProjectRow({ project, isAdmin, onDelete, onEdit }: ProjectRowProps) {
         </Link>
 
         {/* Client */}
-        <div className="col-span-2 min-w-0">
+        <div className="col-span-1 min-w-0">
           {project.client ? (
-            <div className="flex items-center gap-2">
-              <BuildingOffice2Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                {project.client.name}
-              </span>
-            </div>
+            <span className="text-sm text-gray-600 dark:text-gray-300 truncate block cursor-default" title={project.client.name}>
+              {project.client.name}
+            </span>
           ) : (
             <span className="text-sm text-gray-400">—</span>
           )}
@@ -848,33 +1460,125 @@ function ProjectRow({ project, isAdmin, onDelete, onEdit }: ProjectRowProps) {
           )}
         </div>
 
+        {/* Project Lead */}
+        <div className="col-span-1">
+          {(() => {
+            const projectLead = project.members?.find(m => m.role === 'Project Lead');
+            if (projectLead?.user) {
+              const fullName = `${projectLead.user.firstName} ${projectLead.user.lastName}`;
+              return (
+                <div
+                  className="inline-flex items-center cursor-default"
+                  title={fullName}
+                >
+                  <div className="relative group">
+                    <Avatar
+                      firstName={projectLead.user.firstName}
+                      lastName={projectLead.user.lastName}
+                      avatar={projectLead.user.avatar}
+                      size="xs"
+                    />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      {fullName}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return <span className="text-sm text-gray-400">—</span>;
+          })()}
+        </div>
+
         {/* Team */}
         <div className="col-span-2">
-          {project.members && project.members.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-1.5">
-                {project.members.slice(0, 3).map((member) =>
-                  member.user ? (
-                    <Avatar
-                      key={member.id}
-                      firstName={member.user.firstName}
-                      lastName={member.user.lastName}
-                      avatar={member.user.avatar}
-                      size="xs"
-                      className="ring-2 ring-white dark:ring-gray-800"
-                    />
-                  ) : null
+          {(() => {
+            // Filter out project lead from team members
+            const teamMembers = project.members?.filter(m => m.role !== 'Project Lead') || [];
+
+            if (isAdmin) {
+              return (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onManageTeam(project);
+                  }}
+                  className="flex items-center gap-2 px-2 py-1 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+                  title="Manage Team"
+                >
+                  {teamMembers.length > 0 ? (
+                    <>
+                      <div className="flex -space-x-1.5">
+                        {teamMembers.slice(0, 3).map((member) =>
+                          member.user ? (
+                            <div
+                              key={member.id}
+                              className="relative group/avatar"
+                            >
+                              <Avatar
+                                firstName={member.user.firstName}
+                                lastName={member.user.lastName}
+                                avatar={member.user.avatar}
+                                size="xs"
+                                className="ring-2 ring-white dark:ring-gray-800"
+                              />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none z-10">
+                                {member.user.firstName} {member.user.lastName} ({member.role})
+                              </div>
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                      {teamMembers.length > 3 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          +{teamMembers.length - 3}
+                        </span>
+                      )}
+                      <PlusIcon className="w-3.5 h-3.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-400 group-hover:text-redstone-500 flex items-center gap-1">
+                      <PlusIcon className="w-4 h-4" />
+                      Add Team
+                    </span>
+                  )}
+                </button>
+              );
+            }
+
+            return teamMembers.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-1.5">
+                  {teamMembers.slice(0, 3).map((member) =>
+                    member.user ? (
+                      <div
+                        key={member.id}
+                        className="relative group"
+                      >
+                        <Avatar
+                          firstName={member.user.firstName}
+                          lastName={member.user.lastName}
+                          avatar={member.user.avatar}
+                          size="xs"
+                          className="ring-2 ring-white dark:ring-gray-800"
+                        />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          {member.user.firstName} {member.user.lastName} ({member.role})
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+                </div>
+                {teamMembers.length > 3 && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    +{teamMembers.length - 3}
+                  </span>
                 )}
               </div>
-              {project.members.length > 3 && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  +{project.members.length - 3}
-                </span>
-              )}
-            </div>
-          ) : (
-            <span className="text-sm text-gray-400">—</span>
-          )}
+            ) : (
+              <span className="text-sm text-gray-400">—</span>
+            );
+          })()}
         </div>
 
         {/* Tasks Count */}

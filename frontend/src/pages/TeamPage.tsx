@@ -655,9 +655,12 @@ function TeamMemberRow({
 
         {/* Role */}
         <div className="col-span-2">
-          <Badge className={config?.color || 'bg-gray-100 text-gray-700'} size="sm">
+          <span className={cn(
+            'inline-flex px-2 py-0.5 rounded-lg text-xs font-medium',
+            config?.color || 'bg-gray-100 text-gray-700'
+          )}>
             {config?.label || user.role}
-          </Badge>
+          </span>
         </div>
 
         {/* Type */}
@@ -728,9 +731,12 @@ function TeamMemberRow({
                   <span className="ml-1 text-xs text-redstone-600 dark:text-redstone-400">(You)</span>
                 )}
               </h3>
-              <Badge className={config?.color || 'bg-gray-100 text-gray-700'} size="sm">
+              <span className={cn(
+                'inline-flex px-2 py-0.5 rounded-lg text-xs font-medium',
+                config?.color || 'bg-gray-100 text-gray-700'
+              )}>
                 {config?.label || user.role}
-              </Badge>
+              </span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{user.email}</p>
             <div className="flex items-center gap-3 mt-2 text-xs">

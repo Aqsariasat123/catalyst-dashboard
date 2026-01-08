@@ -7,15 +7,18 @@ import {
   PencilSquareIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { timeEntryService, TimeEntryFilters } from '@/services/timeEntry.service';
+import { userService } from '@/services/user.service';
 import { TimeEntry } from '@/types';
 import { useAuthStore } from '@/stores/authStore';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import ActiveTimerWidget from '@/components/dashboard/ActiveTimerWidget';
+import Avatar from '@/components/ui/Avatar';
 import { formatDateTime, formatDuration, cn } from '@/utils/helpers';
 
 export default function TimeTrackingPage() {
@@ -33,13 +36,23 @@ export default function TimeTrackingPage() {
     endDate: '',
   });
 
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
 
+  // Fetch all users for the filter dropdown (Admin/PM only)
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => userService.getAll({ limit: 100 }),
+    enabled: isAdminOrPM,
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ['timeEntries', filters],
+    queryKey: ['timeEntries', filters, selectedUserId, dateRange],
     queryFn: () =>
       timeEntryService.getAll({
         ...filters,
+        userId: selectedUserId || undefined,
         startDate: dateRange.startDate || undefined,
         endDate: dateRange.endDate || undefined,
       }),
@@ -126,10 +139,33 @@ export default function TimeTrackingPage() {
         </div>
       </div>
 
-      {/* Date Filter */}
+      {/* Filters */}
       <Card>
         <CardContent className="py-4">
           <div className="flex flex-wrap items-end gap-4">
+            {/* User Filter - Admin/PM only */}
+            {isAdminOrPM && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Team Member
+                </label>
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => {
+                    setSelectedUserId(e.target.value);
+                    setFilters({ ...filters, page: 1 });
+                  }}
+                  className="px-3 py-2 bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-redstone-500 min-w-[180px]"
+                >
+                  <option value="">All Members</option>
+                  {usersData?.data?.map((u: any) => (
+                    <option key={u.id} value={u.id}>
+                      {u.firstName} {u.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Start Date
@@ -158,15 +194,16 @@ export default function TimeTrackingPage() {
               <CalendarIcon className="w-4 h-4 mr-2" />
               Apply Filter
             </Button>
-            {(dateRange.startDate || dateRange.endDate) && (
+            {(dateRange.startDate || dateRange.endDate || selectedUserId) && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setDateRange({ startDate: '', endDate: '' });
+                  setSelectedUserId('');
                   setFilters({ ...filters, page: 1 });
                 }}
               >
-                Clear
+                Clear All
               </Button>
             )}
           </div>
@@ -270,41 +307,60 @@ function TimeEntryRow({ entry, onDelete, onEdit, canEdit, isDeleting }: TimeEntr
       'py-4 flex items-center justify-between',
       isUnusuallyLong && 'bg-amber-50 dark:bg-amber-500/5 -mx-4 px-4 rounded-lg'
     )}>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <p className="font-medium text-gray-900 dark:text-white truncate">
-            {entry.task?.title || 'Unknown Task'}
-          </p>
-          {!entry.endTime && (
-            <span className="flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-              Running
-            </span>
-          )}
-          {isUnusuallyLong && (
-            <span className="flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
-              <ExclamationTriangleIcon className="w-3 h-3" />
-              Long duration
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {entry.task?.project?.name}
-        </p>
-        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-500">
-          <span>{formatDateTime(entry.startTime)}</span>
-          {entry.endTime && (
-            <>
-              <span>to</span>
-              <span>{formatDateTime(entry.endTime)}</span>
-            </>
-          )}
-        </div>
-        {entry.notes && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
-            "{entry.notes}"
-          </p>
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        {/* User Avatar */}
+        {entry.user && (
+          <Avatar
+            firstName={entry.user.firstName}
+            lastName={entry.user.lastName}
+            size="sm"
+            className="flex-shrink-0 mt-1"
+          />
         )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-medium text-gray-900 dark:text-white truncate">
+              {entry.task?.title || 'Unknown Task'}
+            </p>
+            {!entry.endTime && (
+              <span className="flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                Running
+              </span>
+            )}
+            {isUnusuallyLong && (
+              <span className="flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
+                <ExclamationTriangleIcon className="w-3 h-3" />
+                Long duration
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <span>{entry.task?.project?.name}</span>
+            {entry.user && (
+              <>
+                <span className="text-gray-300 dark:text-gray-600">•</span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">
+                  {entry.user.firstName} {entry.user.lastName}
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-500">
+            <span>{formatDateTime(entry.startTime)}</span>
+            {entry.endTime && (
+              <>
+                <span>to</span>
+                <span>{formatDateTime(entry.endTime)}</span>
+              </>
+            )}
+          </div>
+          {entry.notes && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
+              "{entry.notes}"
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 ml-4">

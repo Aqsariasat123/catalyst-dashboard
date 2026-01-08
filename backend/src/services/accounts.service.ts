@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { Decimal } from '@prisma/client/runtime/library';
+import { transactionService } from './transaction.service.js';
 
 // PKR conversion rates (approximate - should be configurable in production)
 const CURRENCY_TO_PKR: Record<string, number> = {
@@ -283,7 +284,8 @@ export class AccountsService {
     let totalHoursTracked = 0;
 
     const projectBreakdown = projects.map((project) => {
-      const releasedMilestones = project.milestones.filter((m) => m.status === 'COMPLETED');
+      // Use paymentStatus to determine released milestones (not milestone status)
+      const releasedMilestones = project.milestones.filter((m) => m.paymentStatus === 'RELEASED');
       const releasedAmount = releasedMilestones.reduce(
         (sum, m) => sum + (this.toNumber(m.amount) || 0),
         0
@@ -301,20 +303,30 @@ export class AccountsService {
 
       totalRevenue += this.convertToPKR(releasedAmount, project.currency) || 0;
       totalMilestonesReleased += releasedMilestones.length;
-      totalMilestonesPending += project.milestones.filter((m) => m.status !== 'COMPLETED' && m.status !== 'CANCELLED').length;
+      totalMilestonesPending += project.milestones.filter((m) => m.paymentStatus !== 'RELEASED' && m.paymentStatus !== 'CANCELLED').length;
       totalLaborCost += projectLaborCost;
       totalHoursTracked += projectHours;
+
+      const platformFeePercent = this.toNumber(project.platformFeePercent) || 0;
+      const feeAmount = releasedAmount * (platformFeePercent / 100);
+      const netAmount = releasedAmount - feeAmount;
 
       return {
         id: project.id,
         name: project.name,
         client: project.client.name,
+        currency: project.currency,
         budget: this.convertToPKR(this.toNumber(project.budget), project.currency),
+        budgetOriginal: this.toNumber(project.budget),
         spent: projectLaborCost,
         milestonesReleased: releasedMilestones.length,
         totalMilestones: project.milestones.length,
         hoursWorked: Math.round(projectHours * 100) / 100,
         status: project.status,
+        platformFeePercent,
+        grossAmount: releasedAmount,
+        feeAmount: Math.round(feeAmount * 100) / 100,
+        netAmount: Math.round(netAmount * 100) / 100,
       };
     });
 
@@ -389,10 +401,10 @@ export class AccountsService {
       throw new Error('Project not found');
     }
 
-    // Calculate milestone stats
-    const releasedMilestones = project.milestones.filter((m) => m.status === 'COMPLETED');
+    // Calculate milestone stats using paymentStatus
+    const releasedMilestones = project.milestones.filter((m) => m.paymentStatus === 'RELEASED');
     const pendingMilestones = project.milestones.filter(
-      (m) => m.status !== 'COMPLETED' && m.status !== 'CANCELLED'
+      (m) => m.paymentStatus !== 'RELEASED' && m.paymentStatus !== 'CANCELLED'
     );
 
     const milestones = {
@@ -665,10 +677,10 @@ export class AccountsService {
     const remainingBudget = referenceBudget !== null ? referenceBudget - totalCost : 0;
     const isOverBudget = referenceBudget !== null && totalCost > referenceBudget;
 
-    // Calculate milestone stats
-    const releasedMilestones = project.milestones.filter((m) => m.status === 'COMPLETED');
+    // Calculate milestone stats using paymentStatus
+    const releasedMilestones = project.milestones.filter((m) => m.paymentStatus === 'RELEASED');
     const pendingMilestones = project.milestones.filter(
-      (m) => m.status !== 'COMPLETED' && m.status !== 'CANCELLED'
+      (m) => m.paymentStatus !== 'RELEASED' && m.paymentStatus !== 'CANCELLED'
     );
 
     return {
@@ -872,6 +884,7 @@ export class AccountsService {
       amountPKR: this.convertToPKR(this.toNumber(m.amount), m.currency),
       currency: m.currency,
       status: m.status,
+      paymentStatus: m.paymentStatus,
       dueDate: m.dueDate,
       releasedAt: m.releasedAt,
       project: m.project,
@@ -909,22 +922,68 @@ export class AccountsService {
   async updateMilestone(
     id: string,
     data: {
+      projectId?: string;
       title?: string;
       description?: string;
       amount?: number;
       currency?: string;
       status?: string;
-      dueDate?: Date;
+      dueDate?: string | Date;
     }
   ) {
-    const updateData: any = { ...data };
+    // Build update data with proper type conversions
+    const updateData: any = {};
 
-    // If status is being set to RELEASED, set releasedAt
-    if (data.status === 'COMPLETED') {
+    // Only include fields that are provided
+    if (data.projectId !== undefined) updateData.projectId = data.projectId;
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.currency !== undefined) updateData.currency = data.currency;
+
+    // Map status values to valid MilestoneStatus enum values
+    if (data.status !== undefined) {
+      // Map frontend status to valid enum values
+      // Schema values: NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED
+      const statusMap: Record<string, string> = {
+        'RELEASED': 'COMPLETED',
+        'Released': 'COMPLETED',
+        'released': 'COMPLETED',
+        'PENDING': 'NOT_STARTED',
+        'Pending': 'NOT_STARTED',
+        'pending': 'NOT_STARTED',
+      };
+      updateData.status = statusMap[data.status] || data.status;
+    }
+
+    // Convert dueDate string to proper DateTime
+    if (data.dueDate !== undefined) {
+      if (typeof data.dueDate === 'string') {
+        // Handle date string like "2026-01-28"
+        updateData.dueDate = new Date(data.dueDate + 'T00:00:00.000Z');
+      } else {
+        updateData.dueDate = data.dueDate;
+      }
+    }
+
+    // Get the current milestone to check status change
+    const currentMilestone = await prisma.milestone.findUnique({
+      where: { id },
+      include: {
+        project: {
+          include: {
+            client: true,
+          },
+        },
+      },
+    });
+
+    // If status is being set to COMPLETED, set releasedAt
+    if (updateData.status === 'COMPLETED') {
       updateData.releasedAt = new Date();
     }
 
-    return prisma.milestone.update({
+    const updatedMilestone = await prisma.milestone.update({
       where: { id },
       data: updateData,
       include: {
@@ -936,6 +995,28 @@ export class AccountsService {
         },
       },
     });
+
+    // If status changed to COMPLETED, create a transaction
+    if (updateData.status === 'COMPLETED' && currentMilestone && currentMilestone.status !== 'COMPLETED') {
+      try {
+        const platformFeePercent = this.toNumber(currentMilestone.project.platformFeePercent) || 0;
+        await transactionService.createFromMilestoneRelease({
+          id: updatedMilestone.id,
+          title: updatedMilestone.title,
+          amount: this.toNumber(updatedMilestone.amount) || 0,
+          currency: updatedMilestone.currency,
+          projectId: updatedMilestone.project.id,
+          projectName: updatedMilestone.project.name,
+          clientName: currentMilestone.project.client?.name,
+          platformFeePercent,
+        });
+      } catch (error) {
+        console.error('Error creating transaction from milestone release:', error);
+        // Don't throw - milestone update should still succeed
+      }
+    }
+
+    return updatedMilestone;
   }
 
   async deleteMilestone(id: string) {
@@ -1045,10 +1126,10 @@ export class AccountsService {
         year: 'numeric',
       });
 
-      // Get released milestones for this month
+      // Get released milestones for this month (using paymentStatus)
       const milestones = await prisma.milestone.findMany({
         where: {
-          status: 'COMPLETED',
+          paymentStatus: 'RELEASED',
           releasedAt: {
             gte: startOfMonth,
             lte: endOfMonth,

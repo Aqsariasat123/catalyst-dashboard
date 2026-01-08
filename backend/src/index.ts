@@ -57,15 +57,15 @@ async function startServer() {
   try {
     await connectDatabase();
 
-    app.listen(config.port, () => {
+    app.listen(config.port, '0.0.0.0', () => {
       console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
 ║   Task Dashboard API Server                                ║
 ║                                                            ║
-║   Server:     http://localhost:${config.port}                      ║
+║   Local:      http://localhost:${config.port}                      ║
+║   Network:    http://192.168.100.31:${config.port}                 ║
 ║   API Docs:   http://localhost:${config.port}/api/docs             ║
-║   Health:     http://localhost:${config.port}/health               ║
 ║   Mode:       ${config.nodeEnv.padEnd(43)}║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝

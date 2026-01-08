@@ -8,6 +8,11 @@ import timeEntryRoutes from './timeEntry.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import accountsRoutes from './accounts.routes.js';
 import milestoneRoutes from './milestone.routes.js';
+import transactionRoutes from './transaction.routes.js';
+import hrRoutes from './hr.routes.js';
+import recruitmentRoutes from './recruitment.routes.js';
+import jobPostRoutes from './jobpost.routes.js';
+import aiAssistantRoutes from './ai-assistant.routes.js';
 
 const router = Router();
 
@@ -19,6 +24,11 @@ router.use('/tasks', taskRoutes);
 router.use('/time-entries', timeEntryRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/accounts', accountsRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/hr', hrRoutes);
+router.use('/recruitment', recruitmentRoutes);
+router.use('/job-posts', jobPostRoutes);
+router.use('/ai-assistant', aiAssistantRoutes);
 router.use('/', milestoneRoutes);
 
 export default router;

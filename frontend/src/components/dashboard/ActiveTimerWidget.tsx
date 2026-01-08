@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { StopIcon } from '@heroicons/react/24/solid';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,19 +17,31 @@ export default function ActiveTimerWidget() {
     refetchInterval: 30000,
   });
 
+  // Calculate elapsed time from server startTime - works even when tab is inactive
+  const calculateElapsedTime = useCallback(() => {
+    if (activeTimer?.startTime) {
+      const startTime = new Date(activeTimer.startTime).getTime();
+      const now = Date.now();
+      return Math.floor((now - startTime) / 1000);
+    }
+    return 0;
+  }, [activeTimer?.startTime]);
+
   useEffect(() => {
     if (activeTimer) {
-      setElapsedTime(activeTimer.elapsedSeconds);
+      // Calculate immediately based on server time
+      setElapsedTime(calculateElapsedTime());
 
+      // Update display every second using calculated time (not incrementing)
       const interval = setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
+        setElapsedTime(calculateElapsedTime());
       }, 1000);
 
       return () => clearInterval(interval);
     } else {
       setElapsedTime(0);
     }
-  }, [activeTimer]);
+  }, [activeTimer, calculateElapsedTime]);
 
   const stopMutation = useMutation({
     mutationFn: () => timeEntryService.stopTimer(),

@@ -16,6 +16,9 @@ import {
   MoonIcon,
   ArrowRightStartOnRectangleIcon,
   WalletIcon,
+  ShieldCheckIcon,
+  IdentificationIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -45,7 +48,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { name: 'Tasks', href: '/tasks', icon: CheckBadgeIcon },
     { name: 'Time Tracking', href: '/time-tracking', icon: ClockIcon },
     { name: 'Team', href: '/team', icon: UserGroupIcon },
+    { name: 'HR', href: '/hr', icon: IdentificationIcon },
+    { name: 'Recruitment', href: '/recruitment', icon: DocumentTextIcon },
     { name: 'Accounts', href: '/accounts', icon: WalletIcon },
+    { name: 'Permissions', href: '/permissions', icon: ShieldCheckIcon },
     { name: 'Reports', href: '/reports', icon: PresentationChartLineIcon },
   ];
 
@@ -54,6 +60,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { name: 'My Tasks', href: '/tasks', icon: CheckBadgeIcon },
     { name: 'Time Tracking', href: '/time-tracking', icon: ClockIcon },
     { name: 'Projects', href: '/projects', icon: FolderOpenIcon },
+    { name: 'My Portal', href: '/my-portal', icon: IdentificationIcon },
   ];
 
   const navItems = isAdmin ? adminNavItems : developerNavItems;

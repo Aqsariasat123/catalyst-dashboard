@@ -143,6 +143,19 @@ export interface TimeEntry {
   user?: Pick<User, 'id' | 'firstName' | 'lastName'>;
 }
 
+export interface TaskActivity {
+  id: string;
+  taskId: string;
+  userId: string;
+  action: string;
+  field?: string;
+  oldValue?: string;
+  newValue?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatar'>;
+}
+
 export interface ActiveTimer {
   timeEntryId: string;
   taskId: string;

@@ -13,6 +13,8 @@ export interface CreateProjectDTO {
   endDate?: Date;
   budget?: number;
   currency?: string;
+  platformFeePercent?: number;
+  exchangeRate?: number;
 }
 
 export interface UpdateProjectDTO extends Partial<CreateProjectDTO> {
@@ -28,11 +30,12 @@ export class ProjectService {
   ): Promise<PaginatedResponse<any>> {
     const where: Prisma.ProjectWhereInput = { isActive: true };
 
-    // If developer, only show projects they're assigned to
+    // If developer, show projects they're a member of OR have tasks assigned
     if (userRole === 'DEVELOPER' && userId) {
-      where.members = {
-        some: { userId },
-      };
+      where.OR = [
+        { members: { some: { userId } } },
+        { tasks: { some: { assigneeId: userId } } },
+      ];
     }
 
     if (filters?.status) {
@@ -187,10 +190,17 @@ export class ProjectService {
       throw new AppError('Project not found', 404);
     }
 
-    // Check if developer has access
+    // Check if developer has access (member OR has tasks assigned)
     if (userRole === 'DEVELOPER' && userId) {
       const isMember = project.members.some((m) => m.userId === userId);
-      if (!isMember) {
+      // Check if user has any tasks assigned in this project
+      const hasAssignedTasks = await prisma.task.findFirst({
+        where: {
+          projectId: id,
+          assigneeId: userId,
+        },
+      });
+      if (!isMember && !hasAssignedTasks) {
         throw new AppError('Access denied', 403);
       }
     }
@@ -210,8 +220,16 @@ export class ProjectService {
 
     const project = await prisma.project.create({
       data: {
-        ...data,
+        name: data.name,
+        description: data.description,
+        clientId: data.clientId,
+        status: data.status,
+        startDate: data.startDate,
+        endDate: data.endDate,
         budget: data.budget,
+        currency: data.currency,
+        platformFeePercent: data.platformFeePercent,
+        exchangeRate: data.exchangeRate,
       },
       include: {
         client: {
@@ -233,8 +251,17 @@ export class ProjectService {
     const project = await prisma.project.update({
       where: { id },
       data: {
-        ...data,
+        name: data.name,
+        description: data.description,
+        clientId: data.clientId,
+        status: data.status,
+        startDate: data.startDate,
+        endDate: data.endDate,
         budget: data.budget,
+        currency: data.currency,
+        platformFeePercent: data.platformFeePercent,
+        exchangeRate: data.exchangeRate,
+        isActive: data.isActive,
       },
       include: {
         client: {
@@ -344,10 +371,12 @@ export class ProjectService {
   async getAll(userId?: string, userRole?: string) {
     const where: Prisma.ProjectWhereInput = { isActive: true };
 
+    // If developer, show projects they're a member of OR have tasks assigned
     if (userRole === 'DEVELOPER' && userId) {
-      where.members = {
-        some: { userId },
-      };
+      where.OR = [
+        { members: { some: { userId } } },
+        { tasks: { some: { assigneeId: userId } } },
+      ];
     }
 
     return prisma.project.findMany({

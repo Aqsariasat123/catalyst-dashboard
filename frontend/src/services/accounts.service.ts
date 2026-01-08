@@ -15,12 +15,18 @@ export interface AccountsOverview {
     id: string;
     name: string;
     client: string;
+    currency: string;
     budget: number | null;
+    budgetOriginal: number | null;
     spent: number;
     milestonesReleased: number;
     totalMilestones: number;
     hoursWorked: number;
     status: string;
+    platformFeePercent: number;
+    grossAmount: number;
+    feeAmount: number;
+    netAmount: number;
   }[];
   developerCosts: {
     id: string;

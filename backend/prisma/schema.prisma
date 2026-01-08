@@ -65,6 +65,172 @@ enum MilestoneStatus {
   CANCELLED
 }
 
+enum PaymentStatus {
+  PENDING
+  IN_PROGRESS
+  RELEASED
+  DELAYED
+  CANCELLED
+}
+
+enum TransactionType {
+  MILESTONE_PAYMENT
+  PROJECT_FEE
+  PREFERRED_FEE
+  HOURLY_FEE
+  WITHDRAWAL
+  CURRENCY_CONVERSION
+  LOCK
+  UNLOCK
+  MEMBERSHIP
+  EXAM
+  REFUND
+  ARBITRATION
+  OTHER
+}
+
+enum Platform {
+  FREELANCER
+  UPWORK
+  DIRECT
+}
+
+// HR Module Enums
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  WORK_FROM_HOME
+  ON_LEAVE
+}
+
+enum AttendanceSource {
+  MANUAL
+  AUTO
+  TIMER
+}
+
+enum LeaveType {
+  PAID
+  UNPAID
+  SICK
+  CASUAL
+  ANNUAL
+  EMERGENCY
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PayrollStatus {
+  DRAFT
+  PROCESSED
+  PAID
+}
+
+enum ReviewCycle {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+}
+
+enum TechStack {
+  REACT
+  ANGULAR
+  VUE
+  NEXTJS
+  NODE
+  EXPRESS
+  NESTJS
+  PYTHON
+  DJANGO
+  FASTAPI
+  JAVA
+  SPRING
+  DOTNET
+  PHP
+  LARAVEL
+  RUBY
+  RAILS
+  GO
+  RUST
+  FLUTTER
+  REACT_NATIVE
+  ANDROID
+  IOS
+  SWIFT
+  KOTLIN
+  DEVOPS
+  AWS
+  AZURE
+  GCP
+  DOCKER
+  KUBERNETES
+  QA
+  AUTOMATION
+  MANUAL_TESTING
+  UI_UX
+  GRAPHIC_DESIGN
+  FIGMA
+  PHOTOSHOP
+  AI_ML
+  DATA_SCIENCE
+  BLOCKCHAIN
+  OTHER
+}
+
+enum CandidateStatus {
+  NEW
+  SCREENING
+  INTERVIEW
+  TECHNICAL
+  HR_ROUND
+  OFFERED
+  HIRED
+  REJECTED
+  ON_HOLD
+}
+
+enum JobPostStatus {
+  DRAFT
+  OPEN
+  ON_HOLD
+  CLOSED
+  CANCELLED
+}
+
+enum WorkLocation {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
+enum ApplicationStage {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  TECHNICAL
+  HR_ROUND
+  OFFER
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO
+  ONSITE
+  TECHNICAL_TEST
+  HR
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -88,7 +254,23 @@ model User {
   timeEntries       TimeEntry[]
   projectMembers    ProjectMember[]
   activityLogs      ActivityLog[]
+  taskActivities    TaskActivity[]
   notifications     Notification[]
+
+  // HR Relations
+  employeeProfile     EmployeeProfile?
+  managedDepartments  Department[]        @relation("DepartmentManager")
+  subordinates        EmployeeProfile[]   @relation("ReportingTo")
+  attendance          Attendance[]
+  leaveBalances       LeaveBalance[]
+  leaveRequests       LeaveRequest[]      @relation("LeaveRequests")
+  leaveApprovals      LeaveRequest[]      @relation("LeaveApprovals")
+  payrollRecords      Payroll[]
+  reviewsReceived     PerformanceReview[] @relation("ReviewsReceived")
+  reviewsGiven        PerformanceReview[] @relation("ReviewsGiven")
+  loans               Loan[]              @relation("UserLoans")
+  loansApproved       Loan[]              @relation("LoansApproved")
+  documents           EmployeeDocument[]
 
   @@map("users")
 }
@@ -141,17 +323,18 @@ model Project {
 }
 
 model Milestone {
-  id          String          @id @default(uuid())
-  projectId   String
-  title       String
-  description String?
-  amount      Decimal?        @db.Decimal(12, 2)  // Milestone amount (optional)
-  currency    String          @default("USD")
-  status      MilestoneStatus @default(NOT_STARTED)
-  dueDate     DateTime?
-  releasedAt  DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            String          @id @default(uuid())
+  projectId     String
+  title         String
+  description   String?
+  amount        Decimal?        @db.Decimal(12, 2)  // Milestone amount (optional)
+  currency      String          @default("USD")
+  status        MilestoneStatus @default(NOT_STARTED)
+  paymentStatus PaymentStatus?  // Payment release status
+  dueDate       DateTime?
+  releasedAt    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   // Relations
   project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -207,6 +390,7 @@ model Task {
   reviewedBy      User?         @relation("ReviewedTasks", fields: [reviewedById], references: [id], onDelete: SetNull)
   timeEntries     TimeEntry[]
   comments        TaskComment[]
+  activities      TaskActivity[]
 
   @@map("tasks")
 }
@@ -244,6 +428,25 @@ model TaskComment {
   @@map("task_comments")
 }
 
+model TaskActivity {
+  id          String   @id @default(uuid())
+  taskId      String
+  userId      String
+  action      String   // CREATED, STATUS_CHANGED, ASSIGNEE_CHANGED, PRIORITY_CHANGED, TIMER_STARTED, TIMER_STOPPED, etc.
+  field       String?  // The field that was changed (status, assignee, priority, etc.)
+  oldValue    String?  // Previous value
+  newValue    String?  // New value
+  metadata    Json?    // Additional context data
+  createdAt   DateTime @default(now())
+
+  // Relations
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@map("task_activities")
+}
+
 model ActivityLog {
   id          String   @id @default(uuid())
   userId      String
@@ -275,4 +478,377 @@ model Notification {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  date            DateTime
+  description     String          // Original description from CSV
+  type            TransactionType
+  amount          Decimal         @db.Decimal(12, 2)
+  currency        String          // USD, GBP, EUR, PKR, AUD, etc.
+  gst             Decimal?        @db.Decimal(12, 2)
+  platform        Platform        @default(FREELANCER)
+
+  // Extracted/parsed fields
+  projectName     String?         // Extracted project name
+  clientName      String?         // Extracted client name (e.g., "Lucas L.")
+
+  // Linked entities (optional)
+  projectId       String?
+  milestoneId     String?
+
+  // Editable notes
+  notes           String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([date])
+  @@index([type])
+  @@index([projectName])
+  @@map("transactions")
+}
+
+// ==================== HR MODULE ====================
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  managerId   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  manager     User?             @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  employees   EmployeeProfile[]
+
+  @@map("departments")
+}
+
+model EmployeeProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  departmentId    String?
+  employeeCode    String?   @unique
+  designation     String?
+  dateOfJoining   DateTime?
+  dateOfLeaving   DateTime?
+  reportingToId   String?
+  emergencyContact String?
+  emergencyPhone  String?
+  address         String?
+  bankName        String?
+  bankAccount     String?
+  taxId           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department      Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  reportingTo     User?             @relation("ReportingTo", fields: [reportingToId], references: [id], onDelete: SetNull)
+
+  @@map("employee_profiles")
+}
+
+model Attendance {
+  id          String           @id @default(uuid())
+  userId      String
+  date        DateTime         @db.Date
+  status      AttendanceStatus @default(PRESENT)
+  checkIn     DateTime?
+  checkOut    DateTime?
+  workHours   Decimal?         @db.Decimal(4, 2)  // e.g., 8.50 hours
+  breakMinutes Int?            @default(0)
+  source      AttendanceSource @default(MANUAL)
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date])
+  @@map("attendance")
+}
+
+model LeaveBalance {
+  id          String    @id @default(uuid())
+  userId      String
+  year        Int
+  leaveType   LeaveType
+  total       Int       @default(0)
+  used        Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, leaveType])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id          String      @id @default(uuid())
+  userId      String
+  leaveType   LeaveType
+  startDate   DateTime    @db.Date
+  endDate     DateTime    @db.Date
+  totalDays   Int
+  reason      String?
+  status      LeaveStatus @default(PENDING)
+  approvedById String?
+  approvedAt  DateTime?
+  rejectionReason String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  user        User        @relation("LeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy  User?       @relation("LeaveApprovals", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@map("leave_requests")
+}
+
+model Payroll {
+  id            String        @id @default(uuid())
+  userId        String
+  month         Int           // 1-12
+  year          Int
+  baseSalary    Decimal       @db.Decimal(12, 2)
+  allowances    Decimal?      @db.Decimal(12, 2)
+  deductions    Decimal?      @db.Decimal(12, 2)
+  tax           Decimal?      @db.Decimal(12, 2)
+  netSalary     Decimal       @db.Decimal(12, 2)
+  currency      String        @default("PKR")
+  workingDays   Int?
+  presentDays   Int?
+  leaveDays     Int?
+  status        PayrollStatus @default(DRAFT)
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@index([month, year])
+  @@map("payroll")
+}
+
+model PerformanceReview {
+  id            String       @id @default(uuid())
+  userId        String
+  reviewerId    String
+  cycle         ReviewCycle
+  reviewPeriod  String       // e.g., "Q1 2024", "2024"
+  rating        Decimal?     @db.Decimal(3, 2)  // e.g., 4.50 out of 5
+  goals         Json?        // Array of goals with status
+  strengths     String?
+  improvements  String?
+  feedback      String?
+  status        String       @default("DRAFT")  // DRAFT, SUBMITTED, ACKNOWLEDGED
+  submittedAt   DateTime?
+  acknowledgedAt DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  user          User         @relation("ReviewsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer      User         @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([userId, cycle])
+  @@map("performance_reviews")
+}
+
+// ==================== RECRUITMENT MODULE ====================
+
+model Candidate {
+  id          String           @id @default(uuid())
+  name        String
+  email       String?
+  phone       String?
+  techStack   TechStack[]
+  experience  Int?             // Years of experience
+  currentCtc  Decimal?         @db.Decimal(12, 2)
+  expectedCtc Decimal?         @db.Decimal(12, 2)
+  noticePeriod Int?            // Days
+  cvUrl       String?
+  cvFileName  String?          // Original CV file name
+  cvFilePath  String?          // Stored CV file path
+  portfolioUrl String?
+  linkedInUrl String?
+  status      CandidateStatus  @default(NEW)
+  source      String?          // Where did we find them
+  notes       String?
+  rating      Int?             // 1-5 internal rating
+  interviewDate DateTime?
+  appliedFor  String?          // Position/Role (legacy field)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  applications CandidateApplication[]
+
+  @@index([status])
+  @@index([email])
+  @@map("candidates")
+}
+
+model JobPost {
+  id            String         @id @default(uuid())
+  title         String         // e.g., "Senior React Developer"
+  department    String?        // e.g., "Engineering", "Design"
+  description   String?        @db.Text
+  requirements  String?        @db.Text  // Skills, qualifications
+  responsibilities String?     @db.Text
+  positions     Int            @default(1)  // Number of openings
+  salaryMin     Decimal?       @db.Decimal(12, 2)
+  salaryMax     Decimal?       @db.Decimal(12, 2)
+  currency      String         @default("PKR")
+  location      WorkLocation   @default(ONSITE)
+  techStack     TechStack[]
+  experienceMin Int?           // Minimum years
+  experienceMax Int?           // Maximum years
+  status        JobPostStatus  @default(DRAFT)
+  deadline      DateTime?
+  postedAt      DateTime?
+  closedAt      DateTime?
+  createdById   String?
+  notes         String?        @db.Text
+  isUrgent      Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  applications  CandidateApplication[]
+
+  @@index([status])
+  @@index([department])
+  @@map("job_posts")
+}
+
+model CandidateApplication {
+  id            String           @id @default(uuid())
+  candidateId   String
+  jobPostId     String
+  stage         ApplicationStage @default(APPLIED)
+  appliedAt     DateTime         @default(now())
+  stageUpdatedAt DateTime?
+  expectedSalary Decimal?        @db.Decimal(12, 2)
+  availableFrom DateTime?        // When can they join
+  coverLetter   String?          @db.Text
+  stageNotes    String?          @db.Text
+  rating        Int?             // 1-5 rating for this application
+  isShortlisted Boolean          @default(false)
+  rejectionReason String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  candidate     Candidate        @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobPost       JobPost          @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  interviews    InterviewRound[]
+
+  @@unique([candidateId, jobPostId])
+  @@index([stage])
+  @@index([jobPostId])
+  @@map("candidate_applications")
+}
+
+model InterviewRound {
+  id              String             @id @default(uuid())
+  applicationId   String
+  roundNumber     Int                @default(1)
+  type            InterviewType
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  interviewerName String?
+  interviewerId   String?            // Optional link to User
+  location        String?            // Meeting link or address
+  duration        Int?               // Minutes
+  feedback        String?            @db.Text
+  rating          Int?               // 1-5
+  strengths       String?            @db.Text
+  weaknesses      String?            @db.Text
+  recommendation  String?            // HIRE, REJECT, NEXT_ROUND
+  status          String             @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  application     CandidateApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("interview_rounds")
+}
+
+// ==================== EMPLOYEE DOCUMENTS MODULE ====================
+
+enum DocumentType {
+  CONTRACT
+  ID_CARD
+  DEGREE
+  CERTIFICATE
+  OTHER
+}
+
+model EmployeeDocument {
+  id          String       @id @default(uuid())
+  userId      String
+  type        DocumentType
+  title       String       // e.g., "Employment Contract", "CNIC", "BS Computer Science"
+  fileName    String       // Original file name
+  filePath    String       // Stored file path
+  fileSize    Int?         // File size in bytes
+  mimeType    String?      // application/pdf, image/jpeg, etc.
+  uploadedById String?
+  notes       String?
+  expiryDate  DateTime?    // For documents that expire (e.g., ID cards)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("employee_documents")
+}
+
+// ==================== LOAN MODULE ====================
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  PARTIALLY_PAID
+}
+
+model Loan {
+  id            String      @id @default(uuid())
+  userId        String
+  amount        Decimal     @db.Decimal(12, 2)
+  reason        String?
+  status        LoanStatus  @default(PENDING)
+  approvedById  String?
+  approvedAt    DateTime?
+  rejectionReason String?
+  paidAmount    Decimal?    @db.Decimal(12, 2) @default(0)
+  paidAt        DateTime?
+  dueDate       DateTime?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user          User        @relation("UserLoans", fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy    User?       @relation("LoansApproved", fields: [approvedById], references: [id])
+
+  @@index([userId, status])
+  @@map("loans")
 }

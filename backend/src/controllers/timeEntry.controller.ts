@@ -88,6 +88,26 @@ export class TimeEntryController {
     }
   }
 
+  async getActiveTimers(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const timers = await timeEntryService.getActiveTimers(req.user!.userId);
+      sendSuccess(res, timers);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async stopTimerByTask(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { taskId } = req.params;
+      const { notes } = req.body || {};
+      const entry = await timeEntryService.stopTimerByTask(req.user!.userId, taskId, notes);
+      sendSuccess(res, entry, 'Timer stopped');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async createManualEntry(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const data = createManualEntrySchema.parse(req.body);

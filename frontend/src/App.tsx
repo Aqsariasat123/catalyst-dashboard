@@ -9,6 +9,7 @@ import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
 import TasksPage from '@/pages/TasksPage';
+import TaskDetailPage from '@/pages/TaskDetailPage';
 import TimeTrackingPage from '@/pages/TimeTrackingPage';
 import ProjectsPage from '@/pages/ProjectsPage';
 import ProjectDetailPage from '@/pages/ProjectDetailPage';
@@ -16,6 +17,10 @@ import ClientsPage from '@/pages/ClientsPage';
 import ReportsPage from '@/pages/ReportsPage';
 import TeamPage from '@/pages/TeamPage';
 import AccountsPage from '@/pages/AccountsPage';
+import PermissionsPage from '@/pages/PermissionsPage';
+import HRDashboardPage from '@/pages/HRDashboardPage';
+import RecruitmentPage from '@/pages/RecruitmentPage';
+import EmployeePortalPage from '@/pages/EmployeePortalPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +36,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'PROJECT_MANAGER';
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -103,13 +119,18 @@ export default function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="tasks" element={<TasksPage />} />
+            <Route path="tasks/:id" element={<TaskDetailPage />} />
             <Route path="time-tracking" element={<TimeTrackingPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="team" element={<TeamPage />} />
-            <Route path="accounts" element={<AccountsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route path="clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
+            <Route path="team" element={<AdminRoute><TeamPage /></AdminRoute>} />
+            <Route path="accounts" element={<AdminRoute><AccountsPage /></AdminRoute>} />
+            <Route path="permissions" element={<AdminRoute><PermissionsPage /></AdminRoute>} />
+            <Route path="reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
+            <Route path="my-portal" element={<EmployeePortalPage />} />
+            <Route path="hr" element={<AdminRoute><HRDashboardPage /></AdminRoute>} />
+            <Route path="recruitment" element={<AdminRoute><RecruitmentPage /></AdminRoute>} />
           </Route>
 
           {/* Catch all */}

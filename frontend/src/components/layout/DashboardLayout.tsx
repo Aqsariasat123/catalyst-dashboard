@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import Sidebar from './Sidebar';
+import AIAssistant from '@/components/AIAssistant';
 import { cn } from '@/utils/helpers';
 
 export default function DashboardLayout() {
@@ -43,6 +44,9 @@ export default function DashboardLayout() {
           </div>
         </main>
       </div>
+
+      {/* AI Planning Assistant */}
+      <AIAssistant />
     </div>
   );
 }

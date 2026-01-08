@@ -2,6 +2,7 @@ import { TaskStatus, TaskPriority, ReviewStatus, Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { milestoneService } from './milestone.service.js';
+import { taskActivityService } from './taskActivity.service.js';
 import { PaginationParams, PaginatedResponse } from '../types/index.js';
 import { calculatePagination } from '../utils/helpers.js';
 
@@ -124,17 +125,29 @@ export class TaskService {
         : [{ priority: 'desc' }, { createdAt: 'desc' }],
     });
 
-    // Calculate total time for each task
+    // Calculate total time for each task (including active timers)
     const tasksWithTime = await Promise.all(
       tasks.map(async (task) => {
-        const timeEntries = await prisma.timeEntry.aggregate({
-          where: { taskId: task.id },
+        // Completed entries
+        const completedTime = await prisma.timeEntry.aggregate({
+          where: { taskId: task.id, endTime: { not: null } },
           _sum: { duration: true },
         });
 
+        // Active timers (entries without endTime)
+        const activeEntries = await prisma.timeEntry.findMany({
+          where: { taskId: task.id, endTime: null },
+          select: { startTime: true },
+        });
+
+        const activeTime = activeEntries.reduce((total, entry) => {
+          const elapsed = Math.floor((Date.now() - new Date(entry.startTime).getTime()) / 1000);
+          return total + elapsed;
+        }, 0);
+
         return {
           ...task,
-          totalTimeSeconds: timeEntries._sum.duration || 0,
+          totalTimeSeconds: (completedTime._sum.duration || 0) + activeTime,
         };
       })
     );
@@ -207,6 +220,20 @@ export class TaskService {
             },
           },
         },
+        activities: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
         comments: {
           orderBy: { createdAt: 'desc' },
           take: 20,
@@ -227,15 +254,26 @@ export class TaskService {
       }
     }
 
-    // Calculate total time
-    const totalTime = await prisma.timeEntry.aggregate({
-      where: { taskId: id },
+    // Calculate total time from completed entries
+    const completedTime = await prisma.timeEntry.aggregate({
+      where: { taskId: id, endTime: { not: null } },
       _sum: { duration: true },
     });
 
+    // Calculate elapsed time from active timers (entries without endTime)
+    const activeEntries = await prisma.timeEntry.findMany({
+      where: { taskId: id, endTime: null },
+      select: { startTime: true },
+    });
+
+    const activeTime = activeEntries.reduce((total, entry) => {
+      const elapsed = Math.floor((Date.now() - new Date(entry.startTime).getTime()) / 1000);
+      return total + elapsed;
+    }, 0);
+
     return {
       ...task,
-      totalTimeSeconds: totalTime._sum.duration || 0,
+      totalTimeSeconds: (completedTime._sum.duration || 0) + activeTime,
     };
   }
 
@@ -296,6 +334,9 @@ export class TaskService {
       });
     }
 
+    // Record task creation activity
+    await taskActivityService.recordCreation(task.id, createdById);
+
     return task;
   }
 
@@ -354,6 +395,24 @@ export class TaskService {
       });
     }
 
+    // Record activity for changes
+    const trackableFields = ['status', 'assigneeId', 'priority', 'dueDate', 'milestoneId', 'title', 'description'];
+    for (const field of trackableFields) {
+      if (data[field as keyof UpdateTaskDTO] !== undefined) {
+        const oldValue = task[field as keyof typeof task];
+        const newValue = data[field as keyof UpdateTaskDTO];
+        if (oldValue !== newValue) {
+          await taskActivityService.recordChange(
+            id,
+            userId,
+            field,
+            oldValue?.toString(),
+            newValue?.toString()
+          );
+        }
+      }
+    }
+
     // Update milestone progress if task status changed or milestone assignment changed
     if (statusChanged || data.milestoneId !== undefined) {
       // Update old milestone progress if task was moved to a different milestone
@@ -393,15 +452,23 @@ export class TaskService {
     return comment;
   }
 
-  async getTasksByProject(projectId: string) {
+  async getTasksByProject(projectId: string, userId?: string, userRole?: string) {
+    const where: Prisma.TaskWhereInput = { projectId };
+
+    // If developer or designer, only show their assigned tasks
+    if ((userRole === 'DEVELOPER' || userRole === 'DESIGNER') && userId) {
+      where.assigneeId = userId;
+    }
+
     return prisma.task.findMany({
-      where: { projectId },
+      where,
       include: {
         assignee: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
+            avatar: true,
           },
         },
         _count: {

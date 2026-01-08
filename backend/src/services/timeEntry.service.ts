@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { taskActivityService } from './taskActivity.service.js';
 import { PaginationParams, PaginatedResponse, ActiveTimer } from '../types/index.js';
 import { calculatePagination, getStartOfWeek, getStartOfMonth } from '../utils/helpers.js';
 
@@ -110,16 +111,17 @@ export class TimeEntryService {
   }
 
   async startTimer(userId: string, taskId: string, notes?: string, userRole?: string) {
-    // Check for existing active timer
-    const activeTimer = await prisma.timeEntry.findFirst({
+    // Check if this specific task already has an active timer for this user
+    const existingTimerForTask = await prisma.timeEntry.findFirst({
       where: {
         userId,
+        taskId,
         endTime: null,
       },
     });
 
-    if (activeTimer) {
-      throw new AppError('You already have an active timer. Stop it first.', 400);
+    if (existingTimerForTask) {
+      throw new AppError('You already have an active timer for this task.', 400);
     }
 
     // Verify task exists and user has access
@@ -182,6 +184,9 @@ export class TimeEntryService {
       });
     }
 
+    // Record timer start activity
+    await taskActivityService.recordTimerStart(taskId, userId);
+
     return timeEntry;
   }
 
@@ -229,6 +234,9 @@ export class TimeEntryService {
       },
     });
 
+    // Record timer stop activity
+    await taskActivityService.recordTimerStop(activeEntry.taskId, userId, duration);
+
     return timeEntry;
   }
 
@@ -268,6 +276,86 @@ export class TimeEntryService {
       startTime: activeEntry.startTime,
       elapsedSeconds,
     };
+  }
+
+  // Get all active timers for a user (supports multiple concurrent timers)
+  async getActiveTimers(userId: string): Promise<ActiveTimer[]> {
+    const activeEntries = await prisma.timeEntry.findMany({
+      where: {
+        userId,
+        endTime: null,
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { startTime: 'desc' },
+    });
+
+    return activeEntries.map((entry) => ({
+      timeEntryId: entry.id,
+      taskId: entry.task.id,
+      taskTitle: entry.task.title,
+      projectName: entry.task.project.name,
+      startTime: entry.startTime,
+      elapsedSeconds: Math.floor((new Date().getTime() - entry.startTime.getTime()) / 1000),
+    }));
+  }
+
+  // Stop a specific timer by task ID
+  async stopTimerByTask(userId: string, taskId: string, notes?: string) {
+    const activeEntry = await prisma.timeEntry.findFirst({
+      where: {
+        userId,
+        taskId,
+        endTime: null,
+      },
+    });
+
+    if (!activeEntry) {
+      throw new AppError('No active timer found for this task', 404);
+    }
+
+    const endTime = new Date();
+    const duration = Math.floor((endTime.getTime() - activeEntry.startTime.getTime()) / 1000);
+
+    const timeEntry = await prisma.timeEntry.update({
+      where: { id: activeEntry.id },
+      data: {
+        endTime,
+        duration,
+        notes: notes || activeEntry.notes,
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Record timer stop activity
+    await taskActivityService.recordTimerStop(taskId, userId, duration);
+
+    return timeEntry;
   }
 
   async createManualEntry(userId: string, data: CreateTimeEntryDTO) {

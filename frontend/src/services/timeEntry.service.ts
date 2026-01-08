@@ -40,6 +40,11 @@ export const timeEntryService = {
     return response.data.data ?? null;
   },
 
+  async getActiveTimers(): Promise<ActiveTimer[]> {
+    const response = await api.get<ApiResponse<ActiveTimer[]>>('/time-entries/active-all');
+    return response.data.data ?? [];
+  },
+
   async startTimer(taskId: string, notes?: string): Promise<TimeEntry> {
     const response = await api.post<ApiResponse<TimeEntry>>('/time-entries/start', {
       taskId,
@@ -51,6 +56,13 @@ export const timeEntryService = {
   async stopTimer(timeEntryId?: string, notes?: string): Promise<TimeEntry> {
     const response = await api.post<ApiResponse<TimeEntry>>('/time-entries/stop', {
       timeEntryId,
+      notes,
+    });
+    return response.data.data!;
+  },
+
+  async stopTimerByTask(taskId: string, notes?: string): Promise<TimeEntry> {
+    const response = await api.post<ApiResponse<TimeEntry>>(`/time-entries/stop/${taskId}`, {
       notes,
     });
     return response.data.data!;

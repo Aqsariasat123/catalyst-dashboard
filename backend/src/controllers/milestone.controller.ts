@@ -11,6 +11,13 @@ const createMilestoneSchema = z.object({
   currency: z.string().optional(),
   status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
   dueDate: z.string().optional(),
+  paymentStatus: z.string().optional().transform(v => {
+    if (!v || v === '') return null;
+    if (['PENDING', 'IN_PROGRESS', 'RELEASED', 'DELAYED', 'CANCELLED'].includes(v)) {
+      return v as 'PENDING' | 'IN_PROGRESS' | 'RELEASED' | 'DELAYED' | 'CANCELLED';
+    }
+    return null;
+  }),
 });
 
 const updateMilestoneSchema = createMilestoneSchema.partial();
@@ -18,7 +25,11 @@ const updateMilestoneSchema = createMilestoneSchema.partial();
 export class MilestoneController {
   async findByProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const milestones = await milestoneService.findByProject(req.params.projectId);
+      const milestones = await milestoneService.findByProject(
+        req.params.projectId,
+        req.user!.userId,
+        req.user!.role
+      );
       sendSuccess(res, milestones);
     } catch (error) {
       next(error);
@@ -49,13 +60,16 @@ export class MilestoneController {
 
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      console.log('Raw request body:', JSON.stringify(req.body));
       const data = updateMilestoneSchema.parse(req.body);
+      console.log('Parsed data:', JSON.stringify(data));
       const milestone = await milestoneService.update(req.params.id, {
         ...data,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
       });
       sendSuccess(res, milestone, 'Milestone updated successfully');
     } catch (error) {
+      console.log('Error in milestone update:', error instanceof Error ? error.message : 'Unknown error');
       next(error);
     }
   }
