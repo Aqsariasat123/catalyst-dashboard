@@ -49,18 +49,8 @@ export default function LoginPage() {
           <div className="flex items-center gap-4 mb-12">
             <div className="w-14 h-14 flex items-center justify-center">
               <svg className="w-14 h-14" viewBox="0 0 40 40" fill="none">
-                <path d="M6 34L14 6H22L14 34H6Z" fill="url(#redGradientLogin1)" />
-                <path d="M20 34L28 6H36L28 34H20Z" fill="url(#redGradientLogin2)" />
-                <defs>
-                  <linearGradient id="redGradientLogin1" x1="14" y1="6" x2="10" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#c92a2a" />
-                    <stop offset="1" stopColor="#a51d1d" />
-                  </linearGradient>
-                  <linearGradient id="redGradientLogin2" x1="28" y1="6" x2="24" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#c92a2a" />
-                    <stop offset="1" stopColor="#a51d1d" />
-                  </linearGradient>
-                </defs>
+                <rect x="4" y="4" width="12" height="32" rx="2" transform="rotate(-15 10 20)" fill="#B91C1C" />
+                <rect x="20" y="4" width="12" height="32" rx="2" transform="rotate(-15 26 20)" fill="#B91C1C" />
               </svg>
             </div>
             <div>
@@ -104,18 +94,8 @@ export default function LoginPage() {
           <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
             <div className="w-12 h-12 flex items-center justify-center">
               <svg className="w-12 h-12" viewBox="0 0 40 40" fill="none">
-                <path d="M6 34L14 6H22L14 34H6Z" fill="url(#redGradientMobile1)" />
-                <path d="M20 34L28 6H36L28 34H20Z" fill="url(#redGradientMobile2)" />
-                <defs>
-                  <linearGradient id="redGradientMobile1" x1="14" y1="6" x2="10" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#c92a2a" />
-                    <stop offset="1" stopColor="#a51d1d" />
-                  </linearGradient>
-                  <linearGradient id="redGradientMobile2" x1="28" y1="6" x2="24" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#c92a2a" />
-                    <stop offset="1" stopColor="#a51d1d" />
-                  </linearGradient>
-                </defs>
+                <rect x="4" y="4" width="12" height="32" rx="2" transform="rotate(-15 10 20)" fill="#B91C1C" />
+                <rect x="20" y="4" width="12" height="32" rx="2" transform="rotate(-15 26 20)" fill="#B91C1C" />
               </svg>
             </div>
             <span className="text-2xl font-bold text-white">Redstone Catalyst</span>

@@ -91,18 +91,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
               <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
-                <path d="M6 34L14 6H22L14 34H6Z" rx="2" fill="url(#redGradient1)" />
-                <path d="M20 34L28 6H36L28 34H20Z" rx="2" fill="url(#redGradient2)" />
-                <defs>
-                  <linearGradient id="redGradient1" x1="14" y1="6" x2="10" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#c92a2a" />
-                    <stop offset="1" stopColor="#a51d1d" />
-                  </linearGradient>
-                  <linearGradient id="redGradient2" x1="28" y1="6" x2="24" y2="34" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#c92a2a" />
-                    <stop offset="1" stopColor="#a51d1d" />
-                  </linearGradient>
-                </defs>
+                <rect x="4" y="4" width="12" height="32" rx="2" transform="rotate(-15 10 20)" fill="#B91C1C" />
+                <rect x="20" y="4" width="12" height="32" rx="2" transform="rotate(-15 26 20)" fill="#B91C1C" />
               </svg>
             </div>
             {!isCollapsed && (
