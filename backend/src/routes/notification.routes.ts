@@ -1,11 +1,12 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { notificationService } from '../services/notification.service.js';
+import { AuthRequest } from '../types/index.js';
 
 const router = Router();
 
 // Get user notifications
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const unreadOnly = req.query.unreadOnly === 'true';
@@ -18,7 +19,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Get unread count
-router.get('/unread-count', authenticate, async (req, res) => {
+router.get('/unread-count', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const count = await notificationService.getUnreadCount(userId);
@@ -30,7 +31,7 @@ router.get('/unread-count', authenticate, async (req, res) => {
 });
 
 // Mark notification as read
-router.patch('/:id/read', authenticate, async (req, res) => {
+router.patch('/:id/read', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const notification = await notificationService.markAsRead(req.params.id, userId);
@@ -45,7 +46,7 @@ router.patch('/:id/read', authenticate, async (req, res) => {
 });
 
 // Mark all as read
-router.patch('/mark-all-read', authenticate, async (req, res) => {
+router.patch('/mark-all-read', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     await notificationService.markAllAsRead(userId);
