@@ -6,7 +6,13 @@ import { sendSuccess, getPaginationParams } from '../utils/helpers.js';
 
 const createClientSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  email: z.string().email().optional().or(z.literal('')),
+  email: z.string().optional().transform(val => {
+    // If empty or not a valid email format, return undefined
+    if (!val || val.trim() === '') return undefined;
+    // Basic email check - if it contains @ and ., treat as email, otherwise undefined
+    if (val.includes('@') && val.includes('.')) return val;
+    return undefined;
+  }),
   phone: z.string().optional(),
   company: z.string().optional(),
   clientType: z.enum(['UPWORK', 'DIRECT', 'FREELANCER']),
