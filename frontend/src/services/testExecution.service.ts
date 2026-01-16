@@ -28,15 +28,15 @@ export const testExecutionService = {
 
   async getHistory(testCaseId: string): Promise<TestExecution[]> {
     const response = await api.get<ApiResponse<TestExecution[]>>(
-      `/qa/executions/test-case/${testCaseId}`
+      `/qa/executions/history/${testCaseId}`
     );
     return response.data.data!;
   },
 
   async execute(testCaseId: string, data: ExecuteTestData): Promise<TestExecution> {
     const response = await api.post<ApiResponse<TestExecution>>(
-      `/qa/executions/test-case/${testCaseId}`,
-      data
+      `/qa/executions`,
+      { testCaseId, ...data }
     );
     return response.data.data!;
   },

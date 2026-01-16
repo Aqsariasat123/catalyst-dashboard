@@ -50,7 +50,7 @@ export const bugService = {
   },
 
   async updateStatus(id: string, status: BugStatus, comment?: string): Promise<Bug> {
-    const response = await api.patch<ApiResponse<Bug>>(`/qa/bugs/${id}/status`, {
+    const response = await api.post<ApiResponse<Bug>>(`/qa/bugs/${id}/status`, {
       status,
       comment,
     });
@@ -58,7 +58,7 @@ export const bugService = {
   },
 
   async assign(id: string, assignedToId: string): Promise<Bug> {
-    const response = await api.patch<ApiResponse<Bug>>(`/qa/bugs/${id}/assign`, {
+    const response = await api.post<ApiResponse<Bug>>(`/qa/bugs/${id}/assign`, {
       assignedToId,
     });
     return response.data.data!;
