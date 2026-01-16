@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   PhotoIcon,
   VideoCameraIcon,
@@ -9,6 +10,7 @@ import {
 import { QAAttachment } from '@/types/qa.types';
 import { qaAttachmentService } from '@/services/qaAttachment.service';
 import { cn } from '@/utils/helpers';
+import toast from 'react-hot-toast';
 
 interface AttachmentPreviewProps {
   attachment: QAAttachment;
@@ -33,9 +35,29 @@ export default function AttachmentPreview({
   size = 'md',
   className,
 }: AttachmentPreviewProps) {
+  const [downloading, setDownloading] = useState(false);
   const isImage = qaAttachmentService.isImage(attachment);
   const isVideo = qaAttachmentService.isVideo(attachment);
   const config = sizeConfig[size];
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const blob = await qaAttachmentService.downloadFile(attachment.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.originalName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Failed to download file');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const renderThumbnail = () => {
     if (isImage) {
@@ -94,14 +116,15 @@ export default function AttachmentPreview({
               <EyeIcon className="w-4 h-4 text-white" />
             </button>
           )}
-          <a
-            href={qaAttachmentService.getDownloadUrl(attachment)}
-            download={attachment.originalName}
-            className="p-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            className="p-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50"
             title="Download"
           >
-            <ArrowDownTrayIcon className="w-4 h-4 text-white" />
-          </a>
+            <ArrowDownTrayIcon className={cn("w-4 h-4 text-white", downloading && "animate-pulse")} />
+          </button>
           {onDelete && (
             <button
               type="button"
@@ -130,8 +153,28 @@ export function AttachmentListItem({
   onDelete,
   showActions = true,
 }: AttachmentPreviewProps) {
+  const [downloading, setDownloading] = useState(false);
   const isImage = qaAttachmentService.isImage(attachment);
   const isVideo = qaAttachmentService.isVideo(attachment);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const blob = await qaAttachmentService.downloadFile(attachment.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.originalName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Failed to download file');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const getIcon = () => {
     if (isImage) return <PhotoIcon className="w-5 h-5 text-blue-500" />;
@@ -175,14 +218,15 @@ export function AttachmentListItem({
               <EyeIcon className="w-4 h-4" />
             </button>
           )}
-          <a
-            href={qaAttachmentService.getDownloadUrl(attachment)}
-            download={attachment.originalName}
-            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
             title="Download"
           >
-            <ArrowDownTrayIcon className="w-4 h-4" />
-          </a>
+            <ArrowDownTrayIcon className={cn("w-4 h-4", downloading && "animate-pulse")} />
+          </button>
           {onDelete && (
             <button
               type="button"

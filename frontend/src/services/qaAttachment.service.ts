@@ -77,6 +77,13 @@ export const qaAttachmentService = {
     return `${api.defaults.baseURL}/qa/attachments/${attachment.id}/download`;
   },
 
+  async downloadFile(attachmentId: string): Promise<Blob> {
+    const response = await api.get(`/qa/attachments/${attachmentId}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
   isImage(attachment: QAAttachment): boolean {
     return attachment.type === 'IMAGE' || attachment.mimeType.startsWith('image/');
   },
