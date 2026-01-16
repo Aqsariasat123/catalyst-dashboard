@@ -9,7 +9,7 @@ const createUserSchema = z.object({
   password: z.string().min(8),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  role: z.enum(['ADMIN', 'PROJECT_MANAGER', 'DEVELOPER']),
+  role: z.enum(['ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'DESIGNER', 'QC']),
   userType: z.enum(['INHOUSE', 'FREELANCER']),
   phone: z.string().optional(),
   hourlyRate: z.number().optional(),
@@ -18,7 +18,7 @@ const createUserSchema = z.object({
 const updateUserSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
-  role: z.enum(['ADMIN', 'PROJECT_MANAGER', 'DEVELOPER']).optional(),
+  role: z.enum(['ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'DESIGNER', 'QC']).optional(),
   userType: z.enum(['INHOUSE', 'FREELANCER']).optional(),
   phone: z.string().optional(),
   hourlyRate: z.number().optional(),

@@ -317,16 +317,17 @@ export default function TasksPage() {
       </div>
 
       {/* Tasks List */}
-      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-        {/* Table Header */}
-        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          <div className="col-span-4">Task</div>
-          <div className="col-span-2">Project</div>
-          <div className="col-span-1">Priority</div>
-          <div className="col-span-1">Status</div>
-          <div className="col-span-2">Due / Time</div>
-          <div className="col-span-2 text-right">Actions</div>
-        </div>
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden max-w-full">
+        <div className="overflow-x-auto w-full">
+          {/* Table Header */}
+          <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[900px]">
+            <div className="col-span-4">Task</div>
+            <div className="col-span-2">Project</div>
+            <div className="col-span-1">Priority</div>
+            <div className="col-span-1">Status</div>
+            <div className="col-span-2">Due / Time</div>
+            <div className="col-span-2 text-right">Actions</div>
+          </div>
 
         {/* Loading State */}
         {isLoading ? (
@@ -371,6 +372,7 @@ export default function TasksPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Pagination */}
@@ -897,7 +899,7 @@ function TaskRow({
       isTimerActive && "bg-redstone-50/50 dark:bg-redstone-500/5"
     )}>
       {/* Desktop Row */}
-      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center">
+      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center min-w-[900px]">
         {/* Task Info */}
         <Link to={`/tasks/${task.id}`} className="col-span-4 flex items-center gap-3 min-w-0 group">
           <div className={cn(

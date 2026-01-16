@@ -26,7 +26,7 @@ export default function DashboardLayout() {
       />
 
       <div className={cn(
-        'flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300'
+        'flex-1 flex flex-col min-w-0 transition-all duration-300'
       )}>
         {/* Mobile header - only shows hamburger on mobile */}
         <div className="lg:hidden h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4">
@@ -38,8 +38,8 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        <main className="flex-1 overflow-auto p-4 lg:p-6">
-          <div className="animate-fade-in">
+        <main className="flex-1 overflow-x-auto overflow-y-auto p-4 lg:p-6">
+          <div className="animate-fade-in min-w-0">
             <Outlet />
           </div>
         </main>

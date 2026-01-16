@@ -6,6 +6,7 @@ import fs from 'fs';
 const uploadDirs = {
   documents: 'uploads/documents',
   cvs: 'uploads/cvs',
+  qa: 'uploads/qa',
 };
 
 Object.values(uploadDirs).forEach(dir => {
@@ -85,5 +86,50 @@ export const uploadCV = multer({
   fileFilter: cvFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
+
+// Configure storage for QA attachments (screenshots, videos, etc.)
+const qaStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDirs.qa);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `qa-${uniqueSuffix}${ext}`);
+  }
+});
+
+// File filter for QA attachments (images, videos, PDFs)
+const qaFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = [
+    // Images
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml',
+    // Videos
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+    'video/x-msvideo',
+    // Documents
+    'application/pdf',
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF, WebP, SVG), videos (MP4, WebM, MOV, AVI), and PDFs are allowed.'));
+  }
+};
+
+export const uploadQA = multer({
+  storage: qaStorage,
+  fileFilter: qaFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit for videos
   },
 });

@@ -72,7 +72,20 @@ export class AccountsController {
 
   async createMilestone(req: Request, res: Response) {
     try {
-      const milestone = await accountsService.createMilestone(req.body);
+      const { projectId, title, description, amount, currency, dueDate } = req.body;
+
+      if (!projectId || !title) {
+        return res.status(400).json({ message: 'Project and title are required' });
+      }
+
+      const milestone = await accountsService.createMilestone({
+        projectId,
+        title,
+        description,
+        amount: typeof amount === 'string' ? parseFloat(amount) : amount,
+        currency,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+      });
       res.status(201).json(milestone);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -82,7 +95,16 @@ export class AccountsController {
   async updateMilestone(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const milestone = await accountsService.updateMilestone(id, req.body);
+      const { title, description, amount, currency, status, dueDate } = req.body;
+
+      const milestone = await accountsService.updateMilestone(id, {
+        title,
+        description,
+        amount: amount !== undefined ? (typeof amount === 'string' ? parseFloat(amount) : amount) : undefined,
+        currency,
+        status,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+      });
       res.json(milestone);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

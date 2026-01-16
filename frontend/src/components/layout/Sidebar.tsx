@@ -19,6 +19,8 @@ import {
   ShieldCheckIcon,
   IdentificationIcon,
   DocumentTextIcon,
+  BeakerIcon,
+  BugAntIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -87,11 +89,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const isQC = user?.role === 'QC';
+
   const adminNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon },
     { name: 'Clients', href: '/clients', icon: BuildingStorefrontIcon },
     { name: 'Projects', href: '/projects', icon: FolderOpenIcon },
     { name: 'Tasks', href: '/tasks', icon: CheckBadgeIcon },
+    { name: 'QA Dashboard', href: '/qa', icon: BeakerIcon },
     { name: 'Time Tracking', href: '/time-tracking', icon: ClockIcon },
     { name: 'Team', href: '/team', icon: UserGroupIcon },
     { name: 'HR', href: '/hr', icon: IdentificationIcon },
@@ -101,15 +106,25 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { name: 'Reports', href: '/reports', icon: PresentationChartLineIcon },
   ];
 
+  const qcNavItems = [
+    { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon },
+    { name: 'QA Dashboard', href: '/qa', icon: BeakerIcon },
+    { name: 'Tasks', href: '/tasks', icon: CheckBadgeIcon },
+    { name: 'Projects', href: '/projects', icon: FolderOpenIcon },
+    { name: 'Time Tracking', href: '/time-tracking', icon: ClockIcon },
+    { name: 'My Portal', href: '/my-portal', icon: IdentificationIcon },
+  ];
+
   const developerNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon },
     { name: 'My Tasks', href: '/tasks', icon: CheckBadgeIcon },
+    { name: 'My Bugs', href: '/qa/bugs', icon: BugAntIcon },
     { name: 'Time Tracking', href: '/time-tracking', icon: ClockIcon },
     { name: 'Projects', href: '/projects', icon: FolderOpenIcon },
     { name: 'My Portal', href: '/my-portal', icon: IdentificationIcon },
   ];
 
-  const navItems = isAdmin ? adminNavItems : developerNavItems;
+  const navItems = isAdmin ? adminNavItems : isQC ? qcNavItems : developerNavItems;
 
   return (
     <>
@@ -290,7 +305,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = item.href.startsWith('/qa')
+              ? location.pathname.startsWith(item.href)
+              : location.pathname === item.href;
             return (
               <NavLink
                 key={item.name}

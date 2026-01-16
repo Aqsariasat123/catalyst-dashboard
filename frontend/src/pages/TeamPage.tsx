@@ -183,6 +183,14 @@ export default function TeamPage() {
       toast.error('Password is required for new team members');
       return;
     }
+    if (!editingUser && userForm.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (editingUser && userForm.password && userForm.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
 
     if (editingUser) {
       const { password, ...updateData } = userForm;
@@ -300,16 +308,17 @@ export default function TeamPage() {
       </Card>
 
       {/* Team Members List */}
-      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-        {/* Table Header */}
-        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          <div className="col-span-3">Member</div>
-          <div className="col-span-3">Email</div>
-          <div className="col-span-2">Role</div>
-          <div className="col-span-1">Type</div>
-          <div className="col-span-2">Salary</div>
-          <div className="col-span-1 text-right">Actions</div>
-        </div>
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden max-w-full">
+        <div className="overflow-x-auto w-full">
+          {/* Table Header */}
+          <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[900px]">
+            <div className="col-span-3">Member</div>
+            <div className="col-span-3">Email</div>
+            <div className="col-span-2">Role</div>
+            <div className="col-span-1">Type</div>
+            <div className="col-span-2">Salary</div>
+            <div className="col-span-1 text-right">Actions</div>
+          </div>
 
         {isLoading ? (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -343,6 +352,7 @@ export default function TeamPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Pagination */}
@@ -452,6 +462,9 @@ export default function TeamPage() {
                     onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
                     className="w-full px-3 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    {editingUser ? 'Leave blank to keep current password' : 'Minimum 8 characters required'}
+                  </p>
                 </div>
 
                 {/* Role & Type Row */}
@@ -624,7 +637,7 @@ function TeamMemberRow({
   return (
     <div className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
       {/* Desktop Row */}
-      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center">
+      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center min-w-[900px]">
         {/* Member */}
         <div className="col-span-3 flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">

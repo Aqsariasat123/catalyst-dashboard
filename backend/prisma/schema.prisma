@@ -273,6 +273,15 @@ model User {
   loansApproved       Loan[]              @relation("LoansApproved")
   documents           EmployeeDocument[]
 
+  // QA Relations
+  createdTestCases    TestCase[]          @relation("TestCaseCreator")
+  testExecutions      TestExecution[]     @relation("TestExecutor")
+  reportedBugs        Bug[]               @relation("BugReporter")
+  assignedBugs        Bug[]               @relation("BugAssignee")
+  resolvedBugs        Bug[]               @relation("BugResolver")
+  bugActivities       BugActivity[]       @relation("BugActivityUser")
+  uploadedAttachments QAAttachment[]      @relation("AttachmentUploader")
+
   @@map("users")
 }
 
@@ -320,6 +329,11 @@ model Project {
   members       ProjectMember[]
   milestones    Milestone[]
 
+  // QA Relations
+  testCases       TestCase[]
+  bugs            Bug[]
+  automationRuns  AutomationRun[]
+
   @@map("projects")
 }
 
@@ -340,6 +354,11 @@ model Milestone {
   // Relations
   project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks       Task[]
+
+  // QA Relations
+  testCases       TestCase[]
+  testExecutions  TestExecution[]
+  bugs            Bug[]
 
   @@map("milestones")
 }
@@ -392,6 +411,10 @@ model Task {
   timeEntries     TimeEntry[]
   comments        TaskComment[]
   activities      TaskActivity[]
+
+  // QA Relations
+  testCases       TestCase[]
+  bugs            Bug[]
 
   @@map("tasks")
 }
@@ -831,6 +854,57 @@ enum LoanStatus {
   PARTIALLY_PAID
 }
 
+// ==================== QA MODULE ENUMS ====================
+
+enum TestCaseStatus {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+}
+
+enum TestCasePriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TestCaseType {
+  MANUAL
+  AUTOMATION
+}
+
+enum ExecutionStatus {
+  NOT_RUN
+  PASS
+  FAIL
+  BLOCKED
+  SKIPPED
+}
+
+enum BugSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum BugStatus {
+  OPEN
+  IN_PROGRESS
+  FIXED
+  RETEST
+  CLOSED
+  REOPENED
+}
+
+enum QAAttachmentType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
 model Loan {
   id            String      @id @default(uuid())
   userId        String
@@ -852,4 +926,212 @@ model Loan {
 
   @@index([userId, status])
   @@map("loans")
+}
+
+// ==================== QA MODULE ====================
+
+model TestCase {
+  id              String            @id @default(uuid())
+  title           String
+  description     String?
+  steps           Json              // Array of steps: [{step: string, expected: string}]
+  expectedResult  String
+  preconditions   String?
+  priority        TestCasePriority  @default(MEDIUM)
+  type            TestCaseType      @default(MANUAL)
+  status          TestCaseStatus    @default(ACTIVE)
+
+  // Relations to existing models
+  taskId          String
+  task            Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  projectId       String
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId     String?
+  milestone       Milestone?        @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  // Ownership
+  createdById     String
+  createdBy       User              @relation("TestCaseCreator", fields: [createdById], references: [id])
+
+  // Relations
+  executions      TestExecution[]
+  bugs            Bug[]
+  attachments     QAAttachment[]    @relation("TestCaseAttachments")
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([taskId])
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([status])
+  @@index([priority])
+  @@map("test_cases")
+}
+
+model TestExecution {
+  id              String            @id @default(uuid())
+  status          ExecutionStatus   @default(NOT_RUN)
+  notes           String?
+  executionTime   Int?              // Duration in seconds
+
+  // Relations
+  testCaseId      String
+  testCase        TestCase          @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  executedById    String
+  executedBy      User              @relation("TestExecutor", fields: [executedById], references: [id])
+
+  // Sprint/Run info (using milestones as sprints)
+  milestoneId     String?           // Optional sprint/milestone tracking
+  milestone       Milestone?        @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  runNumber       Int               @default(1)
+
+  // Step results
+  stepResults     Json?             // Array of step results: [{stepIndex, passed, notes}]
+
+  attachments     QAAttachment[]    @relation("ExecutionAttachments")
+
+  executedAt      DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+
+  @@index([testCaseId])
+  @@index([executedById])
+  @@index([status])
+  @@index([milestoneId])
+  @@map("test_executions")
+}
+
+model Bug {
+  id              String            @id @default(uuid())
+  bugNumber       Int               @default(autoincrement()) // Auto-increment bug number
+  title           String
+  description     String
+  severity        BugSeverity       @default(MEDIUM)
+  status          BugStatus         @default(OPEN)
+  stepsToReproduce String?
+  environment     String?           // Browser, OS, etc.
+  actualResult    String?
+  expectedResult  String?
+
+  // Linked to test case (where bug was found) - optional
+  testCaseId      String?
+  testCase        TestCase?         @relation(fields: [testCaseId], references: [id], onDelete: SetNull)
+
+  // Linked to test execution (optional)
+  testExecutionId String?
+
+  // Linked to task (required - inherited from test case or direct)
+  taskId          String
+  task            Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Linked to project (required)
+  projectId       String
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Linked to milestone (optional)
+  milestoneId     String?
+  milestone       Milestone?        @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  // Assignment
+  reportedById    String
+  reportedBy      User              @relation("BugReporter", fields: [reportedById], references: [id])
+  assignedToId    String?
+  assignedTo      User?             @relation("BugAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Resolution
+  resolvedById    String?
+  resolvedBy      User?             @relation("BugResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt      DateTime?
+  resolution      String?
+
+  attachments     QAAttachment[]    @relation("BugAttachments")
+  activities      BugActivity[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([testCaseId])
+  @@index([taskId])
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([status])
+  @@index([severity])
+  @@index([assignedToId])
+  @@map("bugs")
+}
+
+model BugActivity {
+  id              String            @id @default(uuid())
+  bugId           String
+  bug             Bug               @relation(fields: [bugId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User              @relation("BugActivityUser", fields: [userId], references: [id])
+
+  action          String            // STATUS_CHANGED, ASSIGNED, COMMENT, ATTACHMENT_ADDED, etc.
+  field           String?
+  oldValue        String?
+  newValue        String?
+  comment         String?
+
+  createdAt       DateTime          @default(now())
+
+  @@index([bugId])
+  @@index([userId])
+  @@map("bug_activities")
+}
+
+model QAAttachment {
+  id              String            @id @default(uuid())
+  filename        String            // Stored filename
+  originalName    String            // Original uploaded filename
+  mimeType        String
+  size            Int               // in bytes
+  url             String            // Storage path (local or cloud)
+  type            QAAttachmentType
+
+  // Polymorphic relations (only one will be set)
+  testCaseId      String?
+  testCase        TestCase?         @relation("TestCaseAttachments", fields: [testCaseId], references: [id], onDelete: Cascade)
+  testExecutionId String?
+  testExecution   TestExecution?    @relation("ExecutionAttachments", fields: [testExecutionId], references: [id], onDelete: Cascade)
+  bugId           String?
+  bug             Bug?              @relation("BugAttachments", fields: [bugId], references: [id], onDelete: Cascade)
+
+  uploadedById    String
+  uploadedBy      User              @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+
+  createdAt       DateTime          @default(now())
+
+  @@index([testCaseId])
+  @@index([testExecutionId])
+  @@index([bugId])
+  @@map("qa_attachments")
+}
+
+// ==================== AUTOMATION STATUS ====================
+
+model AutomationRun {
+  id              String            @id @default(uuid())
+  projectId       String
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  totalTests      Int
+  passed          Int
+  failed          Int
+  skipped         Int
+  duration        Int               // Duration in seconds
+
+  failedTests     Json?             // Array of failed test info
+  reportUrl       String?           // Link to detailed report
+
+  triggeredBy     String?           // CI/CD, Manual, Scheduled
+  branch          String?
+  commitHash      String?
+
+  runAt           DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+
+  @@index([projectId])
+  @@index([runAt])
+  @@map("automation_runs")
 }

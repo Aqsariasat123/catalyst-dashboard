@@ -14,6 +14,7 @@ import recruitmentRoutes from './recruitment.routes.js';
 import jobPostRoutes from './jobpost.routes.js';
 import aiAssistantRoutes from './ai-assistant.routes.js';
 import notificationRoutes from './notification.routes.js';
+import qaRoutes from './qa.routes.js';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.use('/recruitment', recruitmentRoutes);
 router.use('/job-posts', jobPostRoutes);
 router.use('/ai-assistant', aiAssistantRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/qa', qaRoutes);
 router.use('/', milestoneRoutes);
 
 export default router;

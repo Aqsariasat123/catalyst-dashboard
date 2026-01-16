@@ -21,6 +21,18 @@ import PermissionsPage from '@/pages/PermissionsPage';
 import HRDashboardPage from '@/pages/HRDashboardPage';
 import RecruitmentPage from '@/pages/RecruitmentPage';
 import EmployeePortalPage from '@/pages/EmployeePortalPage';
+import QADashboardPage from '@/pages/QADashboardPage';
+import QALayout from '@/components/qa/QALayout';
+import QAOverviewPage from '@/pages/qa/QAOverviewPage';
+import TestCasesPage from '@/pages/qa/TestCasesPage';
+import TestCaseFormPage from '@/pages/qa/TestCaseFormPage';
+import TestCaseDetailPage from '@/pages/qa/TestCaseDetailPage';
+import BugsPage from '@/pages/qa/BugsPage';
+import BugFormPage from '@/pages/qa/BugFormPage';
+import ExecutionsPage from '@/pages/qa/ExecutionsPage';
+import QAReportsPage from '@/pages/qa/ReportsPage';
+import ExecutionReportPage from '@/pages/qa/ExecutionReportPage';
+import BugReportPage from '@/pages/qa/BugReportPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +58,17 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'PROJECT_MANAGER';
 
   if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function QCRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  const canAccessQA = user?.role === 'ADMIN' || user?.role === 'PROJECT_MANAGER' || user?.role === 'QC';
+
+  if (!canAccessQA) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -131,6 +154,26 @@ export default function App() {
             <Route path="my-portal" element={<EmployeePortalPage />} />
             <Route path="hr" element={<AdminRoute><HRDashboardPage /></AdminRoute>} />
             <Route path="recruitment" element={<AdminRoute><RecruitmentPage /></AdminRoute>} />
+            {/* QA Module Routes */}
+            <Route path="qa" element={<QCRoute><QALayout /></QCRoute>}>
+              <Route index element={<QAOverviewPage />} />
+              <Route path="test-cases" element={<TestCasesPage />} />
+              <Route path="test-cases/new" element={<TestCaseFormPage />} />
+              <Route path="test-cases/:id" element={<TestCaseDetailPage />} />
+              <Route path="test-cases/:id/edit" element={<TestCaseFormPage />} />
+              {/* Executions */}
+              <Route path="executions" element={<ExecutionsPage />} />
+              {/* Bug Management */}
+              <Route path="bugs" element={<BugsPage />} />
+              <Route path="bugs/new" element={<BugFormPage />} />
+              <Route path="bugs/:id/edit" element={<BugFormPage />} />
+              {/* Reports */}
+              <Route path="reports" element={<QAReportsPage />} />
+              <Route path="reports/executions" element={<ExecutionReportPage />} />
+              <Route path="reports/bugs" element={<BugReportPage />} />
+            </Route>
+            {/* Legacy QA Dashboard (Task Review) */}
+            <Route path="qa-review" element={<QCRoute><QADashboardPage /></QCRoute>} />
           </Route>
 
           {/* Catch all */}

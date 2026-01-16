@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
+import path from 'path';
 
 import { config, validateEnv } from './config/env.js';
 import { connectDatabase } from './config/database.js';
@@ -15,7 +16,9 @@ validateEnv();
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow images/videos to be loaded cross-origin
+}));
 
 // CORS configuration - support multiple origins for production
 const allowedOrigins = config.frontendUrl.split(',').map(url => url.trim());
@@ -33,6 +36,9 @@ app.use(cors({
 app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files statically (for images, videos, documents)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // API Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

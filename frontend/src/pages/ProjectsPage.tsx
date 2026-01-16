@@ -397,18 +397,20 @@ export default function ProjectsPage() {
       </div>
 
       {/* Projects List */}
-      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-        {/* Table Header */}
-        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          <div className="col-span-3">Project</div>
-          <div className="col-span-1">Client</div>
-          <div className="col-span-1">Status</div>
-          <div className="col-span-2">Timeline</div>
-          <div className="col-span-1">Lead</div>
-          <div className="col-span-2">Team</div>
-          <div className="col-span-1 text-center">Tasks</div>
-          <div className="col-span-1 text-right">Actions</div>
-        </div>
+      <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden max-w-full">
+        {/* Table Container with horizontal scroll */}
+        <div className="overflow-x-auto w-full">
+          {/* Table Header */}
+          <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[900px]">
+            <div className="col-span-3">Project</div>
+            <div className="col-span-1">Client</div>
+            <div className="col-span-1">Status</div>
+            <div className="col-span-2">Timeline</div>
+            <div className="col-span-1">Lead</div>
+            <div className="col-span-2">Team</div>
+            <div className="col-span-1 text-center">Tasks</div>
+            <div className="col-span-1 text-right">Actions</div>
+          </div>
 
         {/* Loading State */}
         {isLoading ? (
@@ -449,6 +451,7 @@ export default function ProjectsPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Pagination */}
@@ -1402,7 +1405,7 @@ function ProjectRow({ project, isAdmin, onDelete, onEdit, onManageTeam }: Projec
   return (
     <div className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
       {/* Desktop Row */}
-      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center">
+      <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 items-center min-w-[900px]">
         {/* Project Info */}
         <Link to={`/projects/${project.id}`} className="col-span-3 flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-redstone-100 dark:bg-redstone-500/10 flex items-center justify-center flex-shrink-0">
